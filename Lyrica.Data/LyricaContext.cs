@@ -1,4 +1,5 @@
 ﻿using Lyrica.Data.Guilds;
+using Lyrica.Data.Users;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lyrica.Data
@@ -8,6 +9,8 @@ namespace Lyrica.Data
         public LyricaContext(DbContextOptions<LyricaContext> options) : base(options) { }
 
         public DbSet<Guild> Guilds { get; set; }
+
+        public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
