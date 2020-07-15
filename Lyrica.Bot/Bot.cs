@@ -4,6 +4,7 @@ using Discord;
 using Discord.Addons.Interactive;
 using Discord.Commands;
 using Discord.WebSocket;
+using Lyrica.Data;
 using Lyrica.Data.Config;
 using Lyrica.Services.AutoRemoveMessage;
 using Lyrica.Services.Core;
@@ -11,6 +12,7 @@ using Lyrica.Services.Core.Messages;
 using Lyrica.Services.Help;
 using Lyrica.Services.Image;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -22,6 +24,9 @@ namespace Lyrica.Bot
     {
         private static ServiceProvider ConfigureServices() =>
             new ServiceCollection().AddHttpClient().AddMemoryCache()
+                .AddDbContext<LyricaContext>(
+                    l => l.UseSqlite("lyrica_bot.db"),
+                    ServiceLifetime.Transient)
                 .AddMediatR(c => c.Using<HaloHaloMediator>(),
                     typeof(Bot), typeof(HaloHaloMediator))
                 .AddLogging(l => l.AddSerilog(dispose: true))
@@ -65,7 +70,7 @@ namespace Lyrica.Bot
             var mediator = services.GetRequiredService<IMediator>();
 
             var config = new ConfigurationBuilder()
-                .AddUserSecrets<HaloHaloConfig>()
+                .AddUserSecrets<LyricaConfig>()
                 .Build();
 
             // Events
@@ -76,7 +81,7 @@ namespace Lyrica.Bot
             commands.Log += LogAsync;
 
             // Login
-            await client.LoginAsync(TokenType.Bot, config.GetValue<string>(nameof(HaloHaloConfig.Token)));
+            await client.LoginAsync(TokenType.Bot, config.GetValue<string>(nameof(LyricaConfig.Token)));
             await client.StartAsync();
 
             // Here we initialize the logic required to register our commands.

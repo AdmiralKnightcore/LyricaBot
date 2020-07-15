@@ -1,13 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Lyrica.Data;
+using Lyrica.Data.Users;
 using Lyrica.Services.Core.Messages;
-using Lyrica.Services.Utilities;
 using MediatR;
 
 namespace Lyrica.Bot.Behaviors
@@ -17,14 +16,16 @@ namespace Lyrica.Bot.Behaviors
         private readonly CommandService _commands;
         private readonly DiscordSocketClient _discord;
         private readonly IServiceProvider _services;
-        private readonly Cache<ulong, IEnumerable<string>> _prefixCache;
+        private readonly LyricaContext _db;
 
         public MessageRecievedListener(
-            CommandService commands, DiscordSocketClient discord, IServiceProvider services)
+            CommandService commands, DiscordSocketClient discord,
+            IServiceProvider services, LyricaContext db)
         {
             _commands = commands;
             _discord = discord;
             _services = services;
+            _db = db;
         }
 
         public Task CommandFailedAsync(ICommandContext context, IResult result) =>
@@ -40,13 +41,21 @@ namespace Lyrica.Bot.Behaviors
             if (message.Source != MessageSource.User)
                 return;
 
+            var user = await _db.Users.FindAsync(notification.Message.Author.Id);
+            if (user == null)
+            {
+                user = new User((IGuildUser) notification.Message.Author);
+                _db.Users.Add(user);
+            }
+
+            user.LastSeenAt = DateTimeOffset.Now;
+            await _db.SaveChangesAsync(cancellationToken);
+
             var argPos = 0;
             var context = new SocketCommandContext(_discord, message);
-            var prefixes = _prefixCache[context.Guild.Id];
-            if (!(message.HasStringPrefix("h!", ref argPos)
-                  || message.HasMentionPrefix(_discord.CurrentUser, ref argPos)))
-                if (!prefixes.Any(p => message.HasStringPrefix(p, ref argPos)))
-                    return;
+            if (!(message.HasStringPrefix("l!", ref argPos) ||
+                  message.HasMentionPrefix(_discord.CurrentUser, ref argPos)))
+                return;
 
             var result = await _commands.ExecuteAsync(context, argPos, _services);
 

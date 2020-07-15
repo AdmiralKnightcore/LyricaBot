@@ -1,6 +1,6 @@
 ﻿namespace Lyrica.Data.Config
 {
-    public class HaloHaloConfig
+    public class LyricaConfig
     {
         public ulong Owner { get; }
 
