@@ -1,7 +1,6 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations.Schema;
 using Discord;
-using Discord.WebSocket;
 using Lyrica.Data.Bless;
 
 namespace Lyrica.Data.Users
@@ -15,6 +14,8 @@ namespace Lyrica.Data.Users
             JoinedAt = user.JoinedAt;
             Stats = new Stats();
         }
+
+        public User() { }
 
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public ulong Id { get; set; }
