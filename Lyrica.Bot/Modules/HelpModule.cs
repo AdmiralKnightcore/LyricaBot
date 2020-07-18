@@ -179,7 +179,7 @@ namespace Lyrica.Bot.Modules
             AppendParameters(summaryBuilder, command.Parameters);
 
             embedBuilder.AddField(
-                new EmbedFieldBuilder().WithName($"Command: `k!{name} {GetParams(command)}`")
+                new EmbedFieldBuilder().WithName($"Command: `l!{name} {GetParams(command)}`")
                     .WithValue(summaryBuilder.ToString()));
 
             return embedBuilder;

@@ -24,9 +24,7 @@ namespace Lyrica.Bot
     {
         private static ServiceProvider ConfigureServices() =>
             new ServiceCollection().AddHttpClient().AddMemoryCache()
-                .AddDbContext<LyricaContext>(
-                    l => l.UseSqlite("lyrica_bot.db"),
-                    ServiceLifetime.Transient)
+                .AddDbContext<LyricaContext>(ContextOptions, ServiceLifetime.Transient)
                 .AddMediatR(c => c.Using<HaloHaloMediator>(),
                     typeof(Bot), typeof(HaloHaloMediator))
                 .AddLogging(l => l.AddSerilog(dispose: true))
@@ -38,6 +36,15 @@ namespace Lyrica.Bot
                 .AddCommandHelp()
                 .AddImages()
                 .BuildServiceProvider();
+
+        private static void ContextOptions(DbContextOptionsBuilder db)
+        {
+            var configuration = new ConfigurationBuilder()
+                .AddUserSecrets<LyricaConfig>()
+                .Build();
+
+            db.UseSqlite(configuration.GetConnectionString("SQLite"));
+        }
 
         private static Task LogAsync(LogMessage message)
         {
