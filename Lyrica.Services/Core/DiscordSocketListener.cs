@@ -44,6 +44,8 @@ namespace Lyrica.Services.Core
             DiscordSocketClient.UserJoined += OnUserJoinedAsync;
             DiscordSocketClient.UserLeft += OnUserLeftAsync;
 
+            DiscordSocketClient.UserVoiceStateUpdated += OnUserVoiceStateUpdatedAsync; 
+
             return Task.CompletedTask;
         }
 
@@ -64,6 +66,8 @@ namespace Lyrica.Services.Core
             DiscordSocketClient.UserBanned -= OnUserBannedAsync;
             DiscordSocketClient.UserJoined -= OnUserJoinedAsync;
             DiscordSocketClient.UserLeft -= OnUserLeftAsync;
+
+            
 
             return Task.CompletedTask;
         }
@@ -188,5 +192,12 @@ namespace Lyrica.Services.Core
 
             return Task.CompletedTask;
         }
+
+        private Task OnUserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState old, SocketVoiceState @new) 
+        { 
+            MessageDispatcher.Publish(new UserVoiceStateNotification(user, old, @new)); 
+ 
+            return Task.CompletedTask; 
+        } 
     }
 }
