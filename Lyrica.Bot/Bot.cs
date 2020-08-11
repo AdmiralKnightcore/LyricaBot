@@ -11,10 +11,12 @@ using Lyrica.Services.Core;
 using Lyrica.Services.Core.Messages;
 using Lyrica.Services.Help;
 using Lyrica.Services.Image;
+using Lyrica.Services.WebHooks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
 
@@ -27,11 +29,15 @@ namespace Lyrica.Bot
                 .AddDbContext<LyricaContext>(ContextOptions, ServiceLifetime.Transient)
                 .AddMediatR(c => c.Using<HaloHaloMediator>(),
                     typeof(Bot), typeof(HaloHaloMediator))
-                .AddLogging(l => l.AddSerilog(dispose: true))
+                .AddLogging(l => l
+                    .AddSerilog(dispose: true)
+                    .SetMinimumLevel(LogLevel.Critical)
+                    .AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning))
                 .AddSingleton<InteractiveService>()
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandlingService>()
+                .AddSingleton<TwitterService>()
                 .AddAutoRemoveMessage()
                 .AddCommandHelp()
                 .AddImages()
