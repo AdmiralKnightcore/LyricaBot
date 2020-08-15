@@ -26,6 +26,8 @@ namespace Lyrica.Data.Users
 
         public DateTimeOffset LastSeenAt { get; set; }
 
+        public TimeSpan Timezone { get; set; }
+
         public Stats Stats { get; set; }
     }
 }
