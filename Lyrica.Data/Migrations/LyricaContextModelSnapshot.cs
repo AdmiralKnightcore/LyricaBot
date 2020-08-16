@@ -4,6 +4,7 @@ using Lyrica.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Lyrica.Data.Migrations
 {
@@ -14,22 +15,24 @@ namespace Lyrica.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn)
+                .HasAnnotation("Relational:MaxIdentifierLength", 63)
                 .HasAnnotation("ProductVersion", "5.0.0-preview.7.20365.15");
 
             modelBuilder.Entity("Lyrica.Data.Bless.BlessingResult", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Amount")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.Property<Guid?>("StatsId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Type")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -42,10 +45,10 @@ namespace Lyrica.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Rolls")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -54,14 +57,14 @@ namespace Lyrica.Data.Migrations
 
             modelBuilder.Entity("Lyrica.Data.Guilds.Guild", b =>
                 {
-                    b.Property<ulong>("Id")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal>("Id")
+                        .HasColumnType("numeric(20,0)");
 
-                    b.Property<ulong?>("LolaBlessGame")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal?>("LolaBlessGame")
+                        .HasColumnType("numeric(20,0)");
 
-                    b.Property<ulong>("Owner")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal>("Owner")
+                        .HasColumnType("numeric(20,0)");
 
                     b.HasKey("Id");
 
@@ -70,23 +73,23 @@ namespace Lyrica.Data.Migrations
 
             modelBuilder.Entity("Lyrica.Data.Users.User", b =>
                 {
-                    b.Property<ulong>("Id")
-                        .HasColumnType("INTEGER");
+                    b.Property<decimal>("Id")
+                        .HasColumnType("numeric(20,0)");
 
                     b.Property<DateTimeOffset?>("JoinedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("LastSeenAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("StatsId")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("uuid");
 
-                    b.Property<TimeSpan>("Timezone")
-                        .HasColumnType("TEXT");
+                    b.Property<TimeSpan?>("Timezone")
+                        .HasColumnType("interval");
 
                     b.Property<DateTimeOffset>("UserCreatedAt")
-                        .HasColumnType("TEXT");
+                        .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
 

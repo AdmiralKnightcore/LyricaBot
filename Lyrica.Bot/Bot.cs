@@ -49,7 +49,7 @@ namespace Lyrica.Bot
                 .AddUserSecrets<LyricaConfig>()
                 .Build();
 
-            db.UseSqlite(configuration.GetConnectionString("SQLite"));
+            db.UseNpgsql(configuration.GetConnectionString("PostgreSQL"));
         }
 
         private static Task LogAsync(LogMessage message)

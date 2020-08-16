@@ -11,9 +11,9 @@ namespace Lyrica.Data.Migrations
                 name: "Guilds",
                 columns: table => new
                 {
-                    Id = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    Owner = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    LolaBlessGame = table.Column<ulong>(type: "INTEGER", nullable: true)
+                    Id = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
+                    Owner = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
+                    LolaBlessGame = table.Column<decimal>(type: "numeric(20,0)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -24,8 +24,8 @@ namespace Lyrica.Data.Migrations
                 name: "Stats",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Rolls = table.Column<int>(type: "INTEGER", nullable: false)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Rolls = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -36,10 +36,10 @@ namespace Lyrica.Data.Migrations
                 name: "BlessingResult",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Type = table.Column<int>(type: "INTEGER", nullable: false),
-                    Amount = table.Column<int>(type: "INTEGER", nullable: false),
-                    StatsId = table.Column<Guid>(type: "TEXT", nullable: true)
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Type = table.Column<int>(type: "integer", nullable: false),
+                    Amount = table.Column<int>(type: "integer", nullable: false),
+                    StatsId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -56,11 +56,12 @@ namespace Lyrica.Data.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<ulong>(type: "INTEGER", nullable: false),
-                    UserCreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    JoinedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true),
-                    LastSeenAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
-                    StatsId = table.Column<Guid>(type: "TEXT", nullable: false)
+                    Id = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
+                    UserCreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    JoinedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    LastSeenAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    Timezone = table.Column<TimeSpan>(type: "interval", nullable: true),
+                    StatsId = table.Column<Guid>(type: "uuid", nullable: false)
                 },
                 constraints: table =>
                 {

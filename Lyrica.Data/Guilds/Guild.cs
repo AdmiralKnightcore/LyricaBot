@@ -9,6 +9,6 @@ namespace Lyrica.Data.Guilds
 
         public ulong Owner { get; set; }
 
-        public ulong? LolaBlessGame { get; set; } = null!;
+        public ulong? LolaBlessGame { get; set; }
     }
 }

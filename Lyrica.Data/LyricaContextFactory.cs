@@ -14,7 +14,7 @@ namespace Lyrica.Data
                 .Build();
 
             var optionsBuilder = new DbContextOptionsBuilder<LyricaContext>()
-                .UseSqlite(configuration.GetConnectionString("SQLite"));
+                .UseNpgsql(configuration.GetConnectionString("PostgreSQL"));
 
             return new LyricaContext(optionsBuilder.Options);
         }
