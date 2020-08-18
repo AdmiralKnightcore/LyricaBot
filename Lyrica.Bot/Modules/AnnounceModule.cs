@@ -1,7 +1,9 @@
-﻿using System.Text.RegularExpressions;
+﻿using System;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Lyrica.Data;
 using Lyrica.Services.Core.Attributes;
 using Lyrica.Services.Interactive;
 using Lyrica.Services.WebHooks;
@@ -21,13 +23,16 @@ namespace Lyrica.Bot.Modules
             Footer
         }
 
+        private readonly LyricaContext _db;
+
         private readonly Regex _tweetRegex;
 
         private readonly TwitterService _twitterService;
 
-        public AnnounceModule(TwitterService twitterService)
+        public AnnounceModule(TwitterService twitterService, LyricaContext db)
         {
             _twitterService = twitterService;
+            _db = db;
             _tweetRegex = new Regex(@"
                 (https?://)?twitter\.com/(?<user>\w{1,15})/status/(?<tweetId>[0-9]+)
                 (/photo/(?<photoNumber>([1-9][0-9]*)))?",
@@ -41,10 +46,20 @@ namespace Lyrica.Bot.Modules
         }
 
         [Command("stream")]
-        public async Task StreamPingAsync(string tweetLink, [Remainder] string? message = null)
+        public async Task StreamPingAsync(string tweetLink, string time, [Remainder] string? message = null)
         {
+            if (!DateTimeOffset.TryParse(time, out var embedTime))
+            {
+                await ReplyAsync("That's an invalid time.");
+                return;
+            }
+
+            var user = await _db.Users.FindAsync(Context.User.Id);
+            var timezone = user.Timezone ?? new TimeSpan(8, 0, 0);
+
             var embed = new EmbedBuilder()
-                .WithFooter("Stream starts at", "https://abs.twimg.com/icons/apple-touch-icon-192x192.png");
+                .WithFooter("Stream starts at", "https://abs.twimg.com/icons/apple-touch-icon-192x192.png")
+                .WithTimestamp(embedTime.ToOffset(timezone));
             var tweet = _tweetRegex.Match(tweetLink);
 
             if (!tweet.Success)

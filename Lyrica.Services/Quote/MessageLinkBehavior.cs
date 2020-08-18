@@ -32,6 +32,9 @@ namespace Lyrica.Services.Quote
         {
             var cachedMessage = await notification.OldMessage.GetOrDownloadAsync();
 
+            if (cachedMessage is null)
+                return;
+
             if (Pattern.IsMatch(cachedMessage.Content))
                 return;
 
