@@ -1,0 +1,48 @@
+b!cc edit whitelist {function;isWhitelisted;
+    {bool;{jget;_whitelist;{userid}};!=;{null}}
+}
+
+{//; Usage: <ign> }
+{function;add;
+    {if;{params};==;`Not enough arguments`;
+        You didn't provide an IGN!
+        {return}
+    }
+    {if;{func.isWhiteListed};
+        {null;{func.remove}}
+        You were already in the whitelist! Your entry was renamed instead.
+        {func.add;{params;0}};
+        {jset;_whitelist;{userid}.ign;{params;0};c}
+        {send;746931720321892573;{embedbuild;
+            author.name:{username}#{userdiscrim};
+            author.icon_url:{useravatar};
+            description:IGN: **`{params;0}`**;
+            timestamp:{time}
+        }}
+        Done. Your whitelist entry has the IGN `{params;0}`.
+    }
+}
+
+{function;remove;
+    {if;{func.isWhiteListed};
+        {jset;_whitelist;{userid};{null};c}
+        You have been removed from the whitelist.;
+        You aren't in the whitelist!
+    }
+}
+
+{switch;{lower;{args;0}};
+    add;{func.add;{args;1}};
+    set;{func.add;{args;1}};
+    remove;{func.remove};
+    {ui;
+        **How to use**
+        `b!whitelist` This shows the help command.
+        `b!whitelist add <ign>` This adds you to the whitelist. This means your in game name.
+        `b!whitelist remove` This removes your request. You can run the add command again if you would like to rename the ign included in the whitelist.
+
+        **Admins** (In Progress)
+        `b!whitelist list` View the list of whitelisted people.
+        `b!whitelist accept <user>` Accept the user in the whitelist.
+    }
+}
