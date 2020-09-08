@@ -218,17 +218,13 @@
     {if;{flagset;t};
         {jset;~hearts;{get;~warnings}.muteLength;{flag;t};c}}
 
-    {set;~heart;{func.getHeart;{get;~user}}}
     {func.setHeart;{get;~user};{get;~warnings}}
+    {set;~heart;{func.getHeart;{get;~user}}}
 
     {//; Muting User }
-    {debug;{ui;
-        Mute user: {logic;&&;{logic;!;{flagset;m}};{jget;~heart;mute}}
-        {logic;!;{flagset;m}} && {jget;~heart;mute}
-    }}
     {if;{flagset;m};
         {jset;~hearts;{get;~warnings}.punishments.mute;false;c};
-        {if;{jget;~heart;mute};
+        {if;{jget;~heart;punishments.mute};
             {func.muteUser;{get;~user};{jget;~heart;muteLength}}}
     }
 
