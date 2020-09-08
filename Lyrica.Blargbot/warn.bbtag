@@ -7,7 +7,6 @@
 }
 
 {set;~muteRole;{get;_muteRole}}
-{set;~logging;728518394537574471}
 
 {set;~hearts;{j;[
     {
@@ -96,7 +95,13 @@
         {usermention;{get;~user}} you have been warned{if;{get;~count};>;1;{space}{get;~count} times}. You now have {get;~warnings} warnings. You have {if;{get;~dm};{jget;~heart;count};{rolemention;{jget;~heart;role}}} hearts left!
 
         {switch;true;
-            {bool;{get;~warnings};>}
+            {bool;{jget;~heart;punishments};contains;"kick"};
+            {ui;
+                **You have been kicked from the server.**
+                {if;{jget;~heart;punishments};contains;"mute";
+                    If you rejoin, you will also be muted for {jget;~heart;muteLength}.}
+            };
+            {bool;{jget;~heart;punishments};contains;"ban"};**You have been banned from the server.**;
             {jget;{get;~heart};mute};**You have also been muted for {jget;~heart;muteLength}.**
         }
     }
@@ -172,12 +177,16 @@
         {func.throw;warn;The count provided was invalid}}
 
     {set;~warnings;{func.getWarnings;{get;~user};{get;~count}}}
+    {//; Override mute length }
+    {if;{flagset;t};
+        {jset;~hearts;{get;~warnings}.muteLength;{flag;t};c}}
+
     {set;~heart;{func.getHeart;{get;~user}}}
 
-    {//; If user has 3 or more warnings
+    {//; If user gets kicked or banned
      //  then these are useless
      //}
-    {if;{get;~warnings};<;3;
+    {if;[{get;~kickAt}, {get;~banAt}];contains;{get;~warnings};
         {//; Add the correct role }
         {foreach;~role;~hearts;
             {if;{userhasrole;{jget;~role;role};{get;~user}};
@@ -190,9 +199,10 @@
             Mute user: {logic;&&;{logic;!;{flagset;m}};{jget;~heart;mute}}
             {logic;!;{flagset;m}} && {jget;~heart;mute}
         }}
-        {if;{logic;&&;{logic;!;{flagset;m}};{jget;~heart;mute}};
-            {func.muteUser;{get;~user};
-                {func.??;{flag;t};{jget;~heart;muteLength}}}
+        {if;{flagset;m};
+            {jset;~hearts;{get;~warnings}.mute;false};
+            {if;{jget;~heart;mute};
+                {func.muteUser;{get;~user};{jget;~heart;muteLength}}}
         }
     }
 
@@ -236,9 +246,10 @@
         {ui;
             `b!warn @user -r Did a bad thing` The pattern that you'll most likely use. This is one warning.
 
-            **These are equivalent**:
+            **Examples**:
             `b!warn @user -c 2 -r Did a really bad thing`
-            `b!warn @user -r Did a really bad thing -c 2`
+            `b!warn @user -r Alt account -d`
+            `b!warn @user -r Minor Misconduct -m`
         };
         fields.name:Warning Reprimands;
         fields.value:
