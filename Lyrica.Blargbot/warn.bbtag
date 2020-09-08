@@ -11,42 +11,58 @@
 {set;~hearts;{j;[
     {
         "role": "728903243035443251",
-        "count": 4,
-        "mute": false,
+        "health": 4,
         "muteLength": "None",
-        "punishments": [],
+        "punishments": {
+            "mute": false,
+            "kick": false,
+            "ban": false
+        },
         "color": "#16C60C"
     },
     {
         "role": "728903246294548532",
-        "count": 3,
-        "mute": true,
+        "health": 3,
         "muteLength": "5m",
-        "punishments": ["mute"],
+        "punishments": {
+            "mute": true,
+            "kick": false,
+            "ban": false
+        },
         "color": "#FCE100"
     },
     {
         "role": "728903249129635902",
-        "count": 2,
-        "mute": true,
+        "health": 2,
         "muteLength": "12h",
-        "punishments": ["mute"],
+        "punishments": {
+            "mute": true,
+            "kick": false,
+            "ban": false
+        },
         "color": "#F7630C"
     },
     {
         "role": "728903250916409425",
-        "count": 1,
-        "mute": true,
+        "health": 1,
         "muteLength": "24h",
-        "punishments": ["mute", "kick"],
+        "punishments": {
+            "mute": true,
+            "kick": true,
+            "ban": false
+        },
         "color": "#E81224"
     },
     {
         "role": "728903408790011914",
-        "count": 0,
+        "health": 0,
         "mute": false,
         "muteLength": "None",
-        "punishments": ["ban"],
+        "punishments": {
+            "mute": false,
+            "kick": false,
+            "ban": true
+        },
         "color": "#000000"
     }
 ]}}
@@ -92,17 +108,17 @@
     {set;~warnings;{func.getWarnings;{get;~user};{get;~count}}}
     {set;~heart;{func.getHeart;{get;~warnings}}}
     {ui;
-        {usermention;{get;~user}} you have been warned{if;{get;~count};>;1;{space}{get;~count} times}. You now have {get;~warnings} warnings. You have {if;{get;~dm};{jget;~heart;count};{rolemention;{jget;~heart;role}}} hearts left!
+        {usermention;{get;~user}} you have been warned{if;{get;~count};>;1;{space}{get;~count} times}. You now have {get;~warnings} warnings. You have {if;{get;~dm};{jget;~heart;health};{rolemention;{jget;~heart;role}}} hearts left!
 
         {switch;true;
-            {bool;{jget;~heart;punishments};contains;"kick"};
+            {jget;~heart;punishments.kick};
             {ui;
                 **You have been kicked from the server.**
-                {if;{jget;~heart;punishments};contains;"mute";
+                {if;{jget;~heart;punishments.mute};
                     If you rejoin, you will also be muted for {jget;~heart;muteLength}.}
             };
-            {bool;{jget;~heart;punishments};contains;"ban"};**You have been banned from the server.**;
-            {jget;{get;~heart};mute};**You have also been muted for {jget;~heart;muteLength}.**
+            {jget;~heart;punishments.ban};**You have been banned from the server.**;
+            {jget;~heart;punishments.mute};**You have also been muted for {jget;~heart;muteLength}.**
         }
     }
 }
@@ -144,9 +160,16 @@
         {ui;
             Assinged: **{get;~count}**
             Total: **{get;~warnings}**
-            Mute: **{jget;~heart;muteLength}**
         };
         fields.inline:true;
+    }
+
+    {if;{jget;~heart;punishments.mute};
+        {push;~embed;
+            fields.name:Mute;
+            fields.value:Length: **{jget;~heart;muteLength}**;
+            fields.inline:true
+        }
     }
 
     {dm;{get;~user};{apply;embedbuild;{get;~embed}}}
@@ -177,33 +200,29 @@
         {func.throw;warn;The count provided was invalid}}
 
     {set;~warnings;{func.getWarnings;{get;~user};{get;~count}}}
+
     {//; Override mute length }
     {if;{flagset;t};
         {jset;~hearts;{get;~warnings}.muteLength;{flag;t};c}}
 
     {set;~heart;{func.getHeart;{get;~user}}}
 
-    {//; If user gets kicked or banned
-     //  then these are useless
-     //}
-    {if;[{get;~kickAt}, {get;~banAt}];contains;{get;~warnings};
-        {//; Add the correct role }
-        {foreach;~role;~hearts;
-            {if;{userhasrole;{jget;~role;role};{get;~user}};
-                {removerole;{jget;~role;role};{get;~user}}}
-        }
-        {addrole;{jget;~heart;role};{get;~user}}
+    {//; Add the correct role }
+    {foreach;~role;~hearts;
+        {if;{userhasrole;{jget;~role;role};{get;~user}};
+            {removerole;{jget;~role;role};{get;~user}}}
+    }
+    {addrole;{jget;~heart;role};{get;~user}}
 
-        {//; Muting User }
-        {debug;{ui;
-            Mute user: {logic;&&;{logic;!;{flagset;m}};{jget;~heart;mute}}
-            {logic;!;{flagset;m}} && {jget;~heart;mute}
-        }}
-        {if;{flagset;m};
-            {jset;~hearts;{get;~warnings}.mute;false};
-            {if;{jget;~heart;mute};
-                {func.muteUser;{get;~user};{jget;~heart;muteLength}}}
-        }
+    {//; Muting User }
+    {debug;{ui;
+        Mute user: {logic;&&;{logic;!;{flagset;m}};{jget;~heart;mute}}
+        {logic;!;{flagset;m}} && {jget;~heart;mute}
+    }}
+    {if;{flagset;m};
+        {jset;~hearts;{get;~warnings}.punishments.mute;false;c};
+        {if;{jget;~heart;mute};
+            {func.muteUser;{get;~user};{jget;~heart;muteLength}}}
     }
 
     {//; DMing User }
