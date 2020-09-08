@@ -1,0 +1,261 @@
+{exec;import_utils}
+{if;{logic;!;{ismod}};{return}}
+
+{if;{args};==;{null};
+    You have to tell me who to warn! Use `b!warn help` for more info.
+    {return}
+}
+
+{set;~muteRole;{get;_muteRole}}
+{set;~logging;728518394537574471}
+
+{set;~hearts;{j;[
+    {
+        "role": "728903243035443251",
+        "count": 4,
+        "mute": false,
+        "muteLength": "None",
+        "punishments": [],
+        "color": "#16C60C"
+    },
+    {
+        "role": "728903246294548532",
+        "count": 3,
+        "mute": true,
+        "muteLength": "5m",
+        "punishments": ["mute"],
+        "color": "#FCE100"
+    },
+    {
+        "role": "728903249129635902",
+        "count": 2,
+        "mute": true,
+        "muteLength": "12h",
+        "punishments": ["mute"],
+        "color": "#F7630C"
+    },
+    {
+        "role": "728903250916409425",
+        "count": 1,
+        "mute": true,
+        "muteLength": "24h",
+        "punishments": ["mute", "kick"],
+        "color": "#E81224"
+    },
+    {
+        "role": "728903408790011914",
+        "count": 0,
+        "mute": false,
+        "muteLength": "None",
+        "punishments": ["ban"],
+        "color": "#000000"
+    }
+]}}
+
+{//;Usage: <title> <error>}
+{function;throw;
+    {set;~embed;
+        author.name:{username}#{userdiscrim} ({userid});
+        author.icon_url:{useravatar};
+        title:An error has occured on "{params;0}";
+        description:{params;1};
+        timestamp:{time};
+        color:red
+    }
+
+    {if;{func.?;{get;~user}};
+        {push;~embed;
+            footer.text:{username;{get;~user}}#{userdiscrim;{get;~user}} ({userid;{get;~user}});
+            footer.icon_url:{useravatar;{get;~user}}
+        }
+    }
+
+    {output;{embed;{apply;embedbuild;{get;~embed}}}}
+    {return}
+}
+
+{//;Usage: <count>}
+{function;getHeart;
+    {func.??;
+        {jget;~hearts;{parseint;{params;0}}};
+        {jget;~hearts;1}
+    }
+}
+
+{//;Usage: <user> <count>}
+{function;getWarnings;{math;+;{warnings;{params;0}};{params;1}}}
+
+{//;Usage: <user> <count> [dm]}
+{function;getDescription;
+    {set;~user;{params;0}}
+    {set;~count;{parseint;{params;1}}}
+    {set;~dm;{bool;{params;2};==;true}}
+    {set;~warnings;{func.getWarnings;{get;~user};{get;~count}}}
+    {set;~heart;{func.getHeart;{get;~warnings}}}
+    {ui;
+        {usermention;{get;~user}} you have been warned{if;{get;~count};>;1;{space}{get;~count} times}. You now have {get;~warnings} warnings. You have {if;{get;~dm};{jget;~heart;count};{rolemention;{jget;~heart;role}}} hearts left!
+
+        {switch;true;
+            {bool;{get;~warnings};>}
+            {jget;{get;~heart};mute};**You have also been muted for {jget;~heart;muteLength}.**
+        }
+    }
+}
+
+{//;Usage: <user> [reason] [count]}
+{function;dmUser;
+    {set;~user;{params;0}}
+
+    {set;~reason;{func.??;{params;1};You were warned for breaking the rules.}}
+    {set;~count;{func.??;{params;2};1}}
+
+    {set;~warnings;{func.getWarnings;{get;~user};{get;~count}}}
+    {set;~heart;{func.getHeart;{get;~warnings}}}
+
+    {debug;DMing `{get;~user}` for reason `{get;~reason}`}
+
+    {if;{func.?;{get;~user}};
+        {func.throw;dmUser;There was no user provided}}
+
+    {set;~embed;
+        title:You have recieved a warning;
+        description:{func.getDescription;{get;~user};{get;~count};true};
+
+        author.name:{username}#{userdiscrim};
+        author.icon_url:{useravatar};
+
+        color:{jget;~heart;color};
+
+        footer.icon_url:{guildicon};
+        footer.text:{guildname};
+        timestamp:{time};
+
+        fields.name:Reason;
+        fields.value:{get;~reason};
+        fields.inline:true;
+
+        fields.name:Amount;
+        fields.value:
+        {ui;
+            Assinged: **{get;~count}**
+            Total: **{get;~warnings}**
+            Mute: **{jget;~heart;muteLength}**
+        };
+        fields.inline:true;
+    }
+
+    {dm;{get;~user};{apply;embedbuild;{get;~embed}}}
+}
+
+{//;Usage: <user> [length]}
+{function;muteUser;
+    {set;~user;{params;0}}
+    {set;~length;{params;1}}
+
+    {debug;Muting `{get;~user}` for `{get;~length}`}
+
+    {void;{roleadd;{get;_muteRole};{get;~user}}}
+    {if;{func.!?;{get;~length}};
+        {timer;{void;{roleremove;{get;_muteRole};{get;~user}}};{get;~length}}}
+}
+
+{//;Usage: <user> [reason] [count]}
+{function;warn;
+    {set;~user;{params;0}}
+
+    {set;~reason;{params;1}}
+    {set;~count;{abs;{parseint;{func.??;{params;2};1}}}}
+
+    {if;{func.?;{params;0}};
+        {func.throw;warn;A user was not provided}}
+    {if;{get;~count};==;NaN;
+        {func.throw;warn;The count provided was invalid}}
+
+    {set;~warnings;{func.getWarnings;{get;~user};{get;~count}}}
+    {set;~heart;{func.getHeart;{get;~user}}}
+
+    {//; If user has 3 or more warnings
+     //  then these are useless
+     //}
+    {if;{get;~warnings};<;3;
+        {//; Add the correct role }
+        {foreach;~role;~hearts;
+            {if;{userhasrole;{jget;~role;role};{get;~user}};
+                {removerole;{jget;~role;role};{get;~user}}}
+        }
+        {addrole;{jget;~heart;role};{get;~user}}
+
+        {//; Muting User }
+        {debug;{ui;
+            Mute user: {logic;&&;{logic;!;{flagset;m}};{jget;~heart;mute}}
+            {logic;!;{flagset;m}} && {jget;~heart;mute}
+        }}
+        {if;{logic;&&;{logic;!;{flagset;m}};{jget;~heart;mute}};
+            {func.muteUser;{get;~user};
+                {func.??;{flag;t};{jget;~heart;muteLength}}}
+        }
+    }
+
+    {//; DMing User }
+    {if;{logic;!;{flagset;d}};
+        {func.dmUser;{get;~user};{flag;r};{flag;c};{flag;a}}}
+
+    {//; Output }
+    {send;{channelid};{embedbuild;
+        color:{jget;~heart;color};
+
+        footer.text:{username}#{userdiscrim} ({userid});
+        footer.icon_url:{useravatar};
+        timestamp:{time};
+
+        description:{func.getDescription;{get;~user};{get;~count}}
+    }}
+
+    {//; Actually warning the user }
+    {warn;{get;~user};{get;~count};{if;{func.!?;{get;~reason}};**[ {username}#{userdiscrim} ]**: {get;~reason}}}
+}
+
+{function;help;
+    {embed;{embedbuild;
+        description:Usage: `{prefix}warn <user> [flags]`;
+        color:{exec;ecolor};
+        footer.text:{username}#{userdiscrim};
+        footer.icon_url:{useravatar};
+        timestamp:{time};
+        fields.name:Flags;
+        fields.value:
+        {ui;
+            `-r` **[Reason]** The reason for the warn. Please always provide a reason if you can!
+            `-c` **[Count]** The number of warnings that will be issued. Use more warnings if it's in a short span, or if it's a repeat offense. It depends on the situation.
+            `-d` **[No DM]** This will not DM the user of their warning. Use only if you need to.
+            `-m` **[No Mute]** This will not Mute the user from their warning.
+            `-t` **[Set Time]** This overrides the length of the mute and mutes them with this length. `1 day 2 hours 3 minutes and 4 seconds`, `1d2h3m4s`, or some other combination.
+        };
+        fields.name:Usage Examples;
+        fields.value:
+        {ui;
+            `b!warn @user -r Did a bad thing` The pattern that you'll most likely use. This is one warning.
+
+            **These are equivalent**:
+            `b!warn @user -c 2 -r Did a really bad thing`
+            `b!warn @user -r Did a really bad thing -c 2`
+        };
+        fields.name:Warning Reprimands;
+        fields.value:
+        {ui;
+            The amount of life is determined by the amount of warns.
+            1 Warning is removed every **3 weeks**. This can be checked by yourself when the system is done.
+
+            <@&728903243035443251> Normal. This is the default amount.
+            <@&728903246294548532> **5 minutes mute.**
+            <@&728903249129635902> **12 hours mute.**
+            <@&728903250916409425> **Kick + 24 hours mute** when rejoining.
+            0 hearts **Ban**
+        }
+    }}
+}
+
+{switch;{lower;{args;0}};
+    ["{null}", "help"];{func.help};
+    {void;{func.warn;{flag;_};{flag;r};{flag;c}}}
+}
