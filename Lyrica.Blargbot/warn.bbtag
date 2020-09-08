@@ -97,6 +97,19 @@
     }
 }
 
+{//;Usage: <user> <warnings>}
+{function;setHeart;
+    {set;~user;{params;0}}
+    {set;~warnings;{params;1}}
+    {set;~heart;{func.getHeart;{get;~warnings}}}
+
+    {foreach;~role;~hearts;
+        {if;{userhasrole;{jget;~role;role};{get;~user}};
+            {removerole;{jget;~role;role};{get;~user}}}
+    }
+    {addrole;{func.??;{jget;~heart;role};{get;~hearts;0.role}};{get;~user}}
+}
+
 {//;Usage: <user> <count>}
 {function;getWarnings;{math;+;{warnings;{params;0}};{params;1}}}
 
@@ -206,13 +219,7 @@
         {jset;~hearts;{get;~warnings}.muteLength;{flag;t};c}}
 
     {set;~heart;{func.getHeart;{get;~user}}}
-
-    {//; Add the correct role }
-    {foreach;~role;~hearts;
-        {if;{userhasrole;{jget;~role;role};{get;~user}};
-            {removerole;{jget;~role;role};{get;~user}}}
-    }
-    {addrole;{jget;~heart;role};{get;~user}}
+    {func.setHeart;{get;~user};{get;~warnings}}
 
     {//; Muting User }
     {debug;{ui;
@@ -242,11 +249,23 @@
 
     {//; Actually warning the user }
     {warn;{get;~user};{get;~count};{if;{func.!?;{get;~reason}};**[ {username}#{userdiscrim} ]**: {get;~reason}}}
+
+    {timer;
+        {func.setHeart;{get;~user};
+            {pardon;{get;~user};{get;~count};
+                {ui;
+                    Warning has expired.
+                    Original reason: {get;~reason}
+                }
+            }
+        };
+        21d
+    }
 }
 
 {function;help;
     {embed;{embedbuild;
-        description:Usage: `{prefix}warn <user> [flags]`;
+        description:Usage: `b!warn <user> [flags]`;
         color:{exec;ecolor};
         footer.text:{username}#{userdiscrim};
         footer.icon_url:{useravatar};
