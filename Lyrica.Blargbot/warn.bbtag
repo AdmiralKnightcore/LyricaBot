@@ -1,5 +1,5 @@
 {exec;import_utils}
-{if;{logic;!;{ismod}};{return}}
+{if;{logic;!;{ismod;{userid}}};{return}}
 
 {if;{args};==;{null};
     You have to tell me who to warn! Use `b!warn help` for more info.
@@ -299,6 +299,8 @@
         }
     }}
 }
+
+{if;{flagset;i};{return;false}}
 
 {switch;{lower;{args;0}};
     ["{null}", "help"];{func.help};
