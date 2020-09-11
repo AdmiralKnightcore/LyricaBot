@@ -1,0 +1,4 @@
+{if;{userisbot};{return}}
+
+{execcc;warn;-i}
+{void;{func.setHeart;{userid};{warnings}}}
