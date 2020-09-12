@@ -1,5 +1,9 @@
 {void;
-    {if;{get;_{userid}kicked};==;true;{roleadd;728903408790011914}}
+    {set;~muteRole;{get;_muteRole}}
+    {if;{warnings};>=;3;
+        {void;{roleadd;{get;~muteRole}}}
+        {timer;{void;{roleremove;{get;~muteRole}}};24h}
+    }
 }
 {void;{set;~time;{usercreatedat;X}}
 {set;~time;{floor;{math;-;{time;X};{get;~time}}}}
