@@ -7,9 +7,9 @@ using Serilog;
 
 namespace Lyrica.Services.Core.Messages
 {
-    public class HaloHaloMediator : Mediator
+    public class LyricaMediator : Mediator
     {
-        public HaloHaloMediator(ServiceFactory serviceFactory) : base(serviceFactory) { }
+        public LyricaMediator(ServiceFactory serviceFactory) : base(serviceFactory) { }
 
         protected override async Task PublishCore(
             IEnumerable<Func<INotification, CancellationToken, Task>> handlers,

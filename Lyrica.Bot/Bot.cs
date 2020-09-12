@@ -7,6 +7,7 @@ using Discord.WebSocket;
 using Lyrica.Data;
 using Lyrica.Data.Config;
 using Lyrica.Services.AutoRemoveMessage;
+using Lyrica.Services.CodePaste;
 using Lyrica.Services.Core;
 using Lyrica.Services.Core.Messages;
 using Lyrica.Services.Help;
@@ -27,17 +28,18 @@ namespace Lyrica.Bot
         private static ServiceProvider ConfigureServices() =>
             new ServiceCollection().AddHttpClient().AddMemoryCache()
                 .AddDbContext<LyricaContext>(ContextOptions, ServiceLifetime.Transient)
-                .AddMediatR(c => c.Using<HaloHaloMediator>(),
-                    typeof(Bot), typeof(HaloHaloMediator))
+                .AddMediatR(c => c.Using<LyricaMediator>(),
+                    typeof(Bot), typeof(LyricaMediator))
                 .AddLogging(l => l
-                    .AddSerilog(dispose: true)
-                    .SetMinimumLevel(LogLevel.Critical)
-                    .AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning))
+                    .AddSerilog(dispose: true, logger: new LoggerConfiguration().CreateLogger())
+                    .AddFilter("Microsoft", LogLevel.Warning))
                 .AddSingleton<InteractiveService>()
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandlingService>()
                 .AddSingleton<TwitterService>()
+                .AddSingleton<CodePasteService>()
+                .AddCodePaste()
                 .AddAutoRemoveMessage()
                 .AddCommandHelp()
                 .AddImages()
