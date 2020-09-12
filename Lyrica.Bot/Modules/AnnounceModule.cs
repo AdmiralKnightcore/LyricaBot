@@ -23,9 +23,14 @@ namespace Lyrica.Bot.Modules
             Footer
         }
 
+        private const ulong _streamChannelId = 728739356139061309;
+
         private readonly LyricaContext _db;
 
-        private readonly Regex _tweetRegex;
+        private readonly Regex _tweetRegex = new Regex(@"
+                (https?://)?twitter\.com/(?<user>\w{1,15})/status/(?<tweetId>[0-9]+)
+                (/photo/(?<photoNumber>([1-9][0-9]*)))?",
+            RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
 
         private readonly TwitterService _twitterService;
 
@@ -33,10 +38,6 @@ namespace Lyrica.Bot.Modules
         {
             _twitterService = twitterService;
             _db = db;
-            _tweetRegex = new Regex(@"
-                (https?://)?twitter\.com/(?<user>\w{1,15})/status/(?<tweetId>[0-9]+)
-                (/photo/(?<photoNumber>([1-9][0-9]*)))?",
-                RegexOptions.Compiled | RegexOptions.IgnorePatternWhitespace);
         }
 
         public async Task StreamPingAsync(ulong tweetId, [Remainder] string title)
@@ -84,7 +85,8 @@ namespace Lyrica.Bot.Modules
                 await _twitterService.AddTweetInfo(embed, tweetId);
             }
 
-            await ReplyAsync(message, embed: embed.Build());
+            var channel = Context.Guild.GetTextChannel(_streamChannelId);
+            await channel.SendMessageAsync(message, embed: embed.Build());
         }
 
         [Command("test")]
