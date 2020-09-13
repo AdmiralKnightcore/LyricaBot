@@ -10,12 +10,23 @@ using Microsoft.Extensions.Logging;
 
 namespace Lyrica.Services.Quote
 {
-    public class MessageLinkBehavior : INotificationHandler<MessageReceivedNotification>,
+    public class MessageLinkBehavior : 
+        INotificationHandler<MessageReceivedNotification>,
         INotificationHandler<MessageUpdatedNotification>
     {
         private static readonly Regex Pattern = new Regex(
             @"(?<Prelink>\S+\s+\S*)?(?<OpenBrace><)?https?://(?:(?:ptb|canary)\.)?discord(app)?\.com/channels/(?<GuildId>\d+)/(?<ChannelId>\d+)/(?<MessageId>\d+)/?(?<CloseBrace>>)?(?<Postlink>\S*\s+\S+)?",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        public MessageLinkBehavior(
+            DiscordSocketClient discordClient, 
+            ILogger<MessageLinkBehavior> log,
+            IQuoteService quoteService)
+        {
+            DiscordClient = discordClient;
+            Log = log;
+            QuoteService = quoteService;
+        }
 
         private DiscordSocketClient DiscordClient { get; }
 

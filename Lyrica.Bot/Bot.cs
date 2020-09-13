@@ -12,6 +12,7 @@ using Lyrica.Services.Core;
 using Lyrica.Services.Core.Messages;
 using Lyrica.Services.Help;
 using Lyrica.Services.Image;
+using Lyrica.Services.Quote;
 using Lyrica.Services.WebHooks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +40,7 @@ namespace Lyrica.Bot
                 .AddSingleton<CommandHandlingService>()
                 .AddSingleton<TwitterService>()
                 .AddSingleton<CodePasteService>()
+                .AddSingleton<IQuoteService, QuoteService>()
                 .AddCodePaste()
                 .AddAutoRemoveMessage()
                 .AddCommandHelp()
