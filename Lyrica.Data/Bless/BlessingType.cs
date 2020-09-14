@@ -5,6 +5,14 @@
         None,
         Palo,
         Thigh,
-        Kiss
+        Kiss,
+        Pet,
+        Smug,
+        Sleep,
+        ForceSleep,
+        Angry,
+        Sing,
+        Coffee,
+        Padoru
     }
 }
