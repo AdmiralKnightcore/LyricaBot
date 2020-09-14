@@ -1,6 +1,4 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
-using Discord;
+﻿using Discord;
 using Discord.Addons.Interactive;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -18,22 +16,34 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Lyrica.Bot
 {
     public class Bot
     {
+        private static DiscordSocketListener _listener;
+        private static CancellationTokenSource _mediatorToken;
+
+        static Bot()
+        {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                .WriteTo.Console().CreateLogger();
+        }
+
         private static ServiceProvider ConfigureServices() =>
             new ServiceCollection().AddHttpClient().AddMemoryCache()
                 .AddDbContext<LyricaContext>(ContextOptions, ServiceLifetime.Transient)
                 .AddMediatR(c => c.Using<LyricaMediator>(),
                     typeof(Bot), typeof(LyricaMediator))
                 .AddLogging(l => l
-                    .AddSerilog(dispose: true, logger: new LoggerConfiguration().CreateLogger())
-                    .AddFilter("Microsoft", LogLevel.Warning))
+                    .AddSerilog(dispose: true, logger: Log.Logger))
                 .AddSingleton<InteractiveService>()
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
@@ -76,11 +86,6 @@ namespace Lyrica.Bot
 
         public static async Task Main()
         {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .WriteTo.Console()
-                .CreateLogger();
-
             await using var services = ConfigureServices();
             var client = services.GetRequiredService<DiscordSocketClient>();
             var commands = services.GetRequiredService<CommandService>();
@@ -90,22 +95,31 @@ namespace Lyrica.Bot
                 .AddUserSecrets<LyricaConfig>()
                 .Build();
 
-            // Events
-            var listener = new DiscordSocketListener(client, mediator);
-            await listener.StartAsync(new CancellationToken());
+            client.Disconnected += ClientOnDisconnected;
+            client.Connected += () => ClientOnConnected(client, mediator);
 
             client.Log += LogAsync;
             commands.Log += LogAsync;
 
-            // Login
             await client.LoginAsync(TokenType.Bot, config.GetValue<string>(nameof(LyricaConfig.Token)));
             await client.StartAsync();
 
-            // Here we initialize the logic required to register our commands.
             await services.GetRequiredService<CommandHandlingService>().InitializeAsync();
 
-            // Block this task until the program is closed.
             await Task.Delay(-1);
+        }
+
+        private static async Task ClientOnConnected(DiscordSocketClient client, IMediator mediator)
+        {
+            _listener = new DiscordSocketListener(client, mediator);
+            _mediatorToken = new CancellationTokenSource();
+            await _listener.StartAsync(_mediatorToken.Token);
+        }
+
+        private static async Task ClientOnDisconnected(Exception arg)
+        {
+            _mediatorToken.Cancel();
+            await _listener.StopAsync(_mediatorToken.Token);
         }
     }
 }

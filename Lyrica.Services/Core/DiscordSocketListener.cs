@@ -24,6 +24,16 @@ namespace Lyrica.Services.Core
             MessageDispatcher = messageDispatcher;
         }
 
+        /// <summary>
+        ///     The <see cref="DiscordSocketClient" /> to be listened to.
+        /// </summary>
+        protected internal DiscordSocketClient DiscordSocketClient { get; }
+
+        /// <summary>
+        ///     A <see cref="IMessageDispatcher" /> used to dispatch discord notifications to the rest of the application.
+        /// </summary>
+        protected internal IMediator MessageDispatcher { get; }
+
         /// <inheritdoc />
         public Task StartAsync(
             CancellationToken cancellationToken)
@@ -44,7 +54,7 @@ namespace Lyrica.Services.Core
             DiscordSocketClient.UserJoined += OnUserJoinedAsync;
             DiscordSocketClient.UserLeft += OnUserLeftAsync;
 
-            DiscordSocketClient.UserVoiceStateUpdated += OnUserVoiceStateUpdatedAsync; 
+            DiscordSocketClient.UserVoiceStateUpdated += OnUserVoiceStateUpdatedAsync;
 
             return Task.CompletedTask;
         }
@@ -67,20 +77,8 @@ namespace Lyrica.Services.Core
             DiscordSocketClient.UserJoined -= OnUserJoinedAsync;
             DiscordSocketClient.UserLeft -= OnUserLeftAsync;
 
-            
-
             return Task.CompletedTask;
         }
-
-        /// <summary>
-        ///     The <see cref="DiscordSocketClient" /> to be listened to.
-        /// </summary>
-        protected internal DiscordSocketClient DiscordSocketClient { get; }
-
-        /// <summary>
-        ///     A <see cref="IMessageDispatcher" /> used to dispatch discord notifications to the rest of the application.
-        /// </summary>
-        protected internal IMediator MessageDispatcher { get; }
 
         private Task OnChannelCreatedAsync(SocketChannel channel)
         {
@@ -193,11 +191,11 @@ namespace Lyrica.Services.Core
             return Task.CompletedTask;
         }
 
-        private Task OnUserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState old, SocketVoiceState @new) 
-        { 
-            MessageDispatcher.Publish(new UserVoiceStateNotification(user, old, @new)); 
- 
-            return Task.CompletedTask; 
-        } 
+        private Task OnUserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState old, SocketVoiceState @new)
+        {
+            MessageDispatcher.Publish(new UserVoiceStateNotification(user, old, @new));
+
+            return Task.CompletedTask;
+        }
     }
 }
