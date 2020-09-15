@@ -11,6 +11,9 @@ namespace Lyrica.Services.Utilities
         public static bool HasRole(this IGuildUser user, ulong roleId)
             => user.RoleIds.Contains(roleId);
 
+        public static bool HasRole(this IGuildUser user, IRole role)
+            => user.HasRole(role.Id);
+
         public static string GetDefiniteAvatarUrl(this IUser user)
             => user.GetAvatarUrl() ?? user.GetDefaultAvatarUrl();
     }

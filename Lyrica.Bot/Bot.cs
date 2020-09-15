@@ -1,4 +1,7 @@
-﻿using Discord;
+﻿using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Discord;
 using Discord.Addons.Interactive;
 using Discord.Commands;
 using Discord.WebSocket;
@@ -18,24 +21,17 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Lyrica.Bot
 {
     public class Bot
     {
-        private static DiscordSocketListener _listener;
-        private static CancellationTokenSource _mediatorToken;
+        private const bool AttemptReset = true;
+        private static CancellationTokenSource? _mediatorToken;
 
-        static Bot()
-        {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-                .WriteTo.Console().CreateLogger();
-        }
+        private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(15);
+
+        private CancellationTokenSource _reconnectCts = null!;
 
         private static ServiceProvider ConfigureServices() =>
             new ServiceCollection().AddHttpClient().AddMemoryCache()
@@ -84,8 +80,15 @@ namespace Lyrica.Bot
             return Task.CompletedTask;
         }
 
-        public static async Task Main()
+        public static async Task Main() => await new Bot().StartAsync();
+
+        public async Task StartAsync()
         {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Information()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+                .WriteTo.Console().CreateLogger();
+
             await using var services = ConfigureServices();
             var client = services.GetRequiredService<DiscordSocketClient>();
             var commands = services.GetRequiredService<CommandService>();
@@ -95,8 +98,14 @@ namespace Lyrica.Bot
                 .AddUserSecrets<LyricaConfig>()
                 .Build();
 
-            client.Disconnected += ClientOnDisconnected;
-            client.Connected += () => ClientOnConnected(client, mediator);
+            _reconnectCts = new CancellationTokenSource();
+            _mediatorToken = new CancellationTokenSource();
+
+            await new DiscordSocketListener(client, mediator)
+                .StartAsync(_mediatorToken.Token);
+
+            client.Disconnected += _ => ClientOnDisconnected(client);
+            client.Connected += ClientOnConnected;
 
             client.Log += LogAsync;
             commands.Log += LogAsync;
@@ -109,17 +118,66 @@ namespace Lyrica.Bot
             await Task.Delay(-1);
         }
 
-        private static async Task ClientOnConnected(DiscordSocketClient client, IMediator mediator)
+        private Task ClientOnConnected()
         {
-            _listener = new DiscordSocketListener(client, mediator);
-            _mediatorToken = new CancellationTokenSource();
-            await _listener.StartAsync(_mediatorToken.Token);
+            Log.Debug("Client reconnected, resetting cancel tokens...");
+
+            _reconnectCts.Cancel();
+            _reconnectCts = new CancellationTokenSource();
+
+            Log.Debug("Client reconnected, cancel tokens reset.");
+            return Task.CompletedTask;
         }
 
-        private static async Task ClientOnDisconnected(Exception arg)
+        private Task ClientOnDisconnected(DiscordSocketClient client)
         {
-            _mediatorToken.Cancel();
-            await _listener.StopAsync(_mediatorToken.Token);
+            // Check the state after <timeout> to see if we reconnected
+            Log.Information("Client disconnected, starting timeout task...");
+            _ = Task.Delay(Timeout, _reconnectCts.Token).ContinueWith(async _ =>
+            {
+                Log.Debug("Timeout expired, continuing to check client state...");
+                await CheckStateAsync(client);
+                Log.Debug("State came back okay");
+            });
+
+            return Task.CompletedTask;
         }
+
+        private async Task CheckStateAsync(DiscordSocketClient client)
+        {
+            // Client reconnected, no need to reset
+            if (client.ConnectionState == ConnectionState.Connected) return;
+            if (AttemptReset)
+            {
+                Log.Information("Attempting to reset the client");
+
+                var timeout = Task.Delay(Timeout);
+                var connect = client.StartAsync();
+                var task = await Task.WhenAny(timeout, connect);
+
+                if (task == timeout)
+                {
+                    Log.Fatal("Client reset timed out (task deadlocked?), killing process");
+                    FailFast();
+                }
+                else if (connect.IsFaulted)
+                {
+                    Log.Fatal("Client reset faulted, killing process", connect.Exception);
+                    FailFast();
+                }
+                else if (connect.IsCompletedSuccessfully)
+                {
+                    Log.Information("Client reset succesfully!");
+                }
+
+                return;
+            }
+
+            Log.Fatal("Client did not reconnect in time, killing process");
+            FailFast();
+        }
+
+        private void FailFast()
+            => Environment.Exit(1);
     }
 }

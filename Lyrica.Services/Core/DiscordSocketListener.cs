@@ -13,6 +13,8 @@ namespace Lyrica.Services.Core
     /// </summary>
     public class DiscordSocketListener
     {
+        private CancellationToken _cancellationToken;
+
         /// <summary>
         ///     Constructs a new <see cref="DiscordSocketListener" /> with the given dependencies.
         /// </summary>
@@ -38,6 +40,7 @@ namespace Lyrica.Services.Core
         public Task StartAsync(
             CancellationToken cancellationToken)
         {
+            _cancellationToken = cancellationToken;
             DiscordSocketClient.ChannelCreated += OnChannelCreatedAsync;
             DiscordSocketClient.ChannelUpdated += OnChannelUpdatedAsync;
             DiscordSocketClient.GuildAvailable += OnGuildAvailableAsync;
@@ -82,42 +85,42 @@ namespace Lyrica.Services.Core
 
         private Task OnChannelCreatedAsync(SocketChannel channel)
         {
-            MessageDispatcher.Publish(new ChannelCreatedNotification(channel));
+            MessageDispatcher.Publish(new ChannelCreatedNotification(channel), _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnChannelUpdatedAsync(SocketChannel oldChannel, SocketChannel newChannel)
         {
-            MessageDispatcher.Publish(new ChannelUpdatedNotification(oldChannel, newChannel));
+            MessageDispatcher.Publish(new ChannelUpdatedNotification(oldChannel, newChannel), _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnGuildAvailableAsync(SocketGuild guild)
         {
-            MessageDispatcher.Publish(new GuildAvailableNotification(guild));
+            MessageDispatcher.Publish(new GuildAvailableNotification(guild), _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnJoinedGuildAsync(SocketGuild guild)
         {
-            MessageDispatcher.Publish(new JoinedGuildNotification(guild));
+            MessageDispatcher.Publish(new JoinedGuildNotification(guild), _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnMessageDeletedAsync(Cacheable<IMessage, ulong> message, ISocketMessageChannel channel)
         {
-            MessageDispatcher.Publish(new MessageDeletedNotification(message, channel));
+            MessageDispatcher.Publish(new MessageDeletedNotification(message, channel), _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnMessageReceivedAsync(SocketMessage message)
         {
-            MessageDispatcher.Publish(new MessageReceivedNotification(message));
+            MessageDispatcher.Publish(new MessageReceivedNotification(message), _cancellationToken);
 
             return Task.CompletedTask;
         }
@@ -126,7 +129,7 @@ namespace Lyrica.Services.Core
             Cacheable<IMessage, ulong> oldMessage, SocketMessage newMessage,
             ISocketMessageChannel channel)
         {
-            MessageDispatcher.Publish(new MessageUpdatedNotification(oldMessage, newMessage, channel));
+            MessageDispatcher.Publish(new MessageUpdatedNotification(oldMessage, newMessage, channel), _cancellationToken);
 
             return Task.CompletedTask;
         }
@@ -135,7 +138,7 @@ namespace Lyrica.Services.Core
             Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel,
             SocketReaction reaction)
         {
-            MessageDispatcher.Publish(new ReactionAddedNotification(message, channel, reaction));
+            MessageDispatcher.Publish(new ReactionAddedNotification(message, channel, reaction), _cancellationToken);
 
             return Task.CompletedTask;
         }
@@ -144,56 +147,56 @@ namespace Lyrica.Services.Core
             Cacheable<IUserMessage, ulong> message, ISocketMessageChannel channel,
             SocketReaction reaction)
         {
-            MessageDispatcher.Publish(new ReactionRemovedNotification(message, channel, reaction));
+            MessageDispatcher.Publish(new ReactionRemovedNotification(message, channel, reaction), _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnReadyAsync()
         {
-            MessageDispatcher.Publish(ReadyNotification.Default);
+            MessageDispatcher.Publish(ReadyNotification.Default, _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnRoleCreatedAsync(SocketRole role)
         {
-            MessageDispatcher.Publish(new RoleCreatedNotification(role));
+            MessageDispatcher.Publish(new RoleCreatedNotification(role), _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnRoleUpdatedAsync(SocketRole oldRole, SocketRole newRole)
         {
-            MessageDispatcher.Publish(new RoleUpdatedNotification(oldRole, newRole));
+            MessageDispatcher.Publish(new RoleUpdatedNotification(oldRole, newRole), _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnUserBannedAsync(SocketUser user, SocketGuild guild)
         {
-            MessageDispatcher.Publish(new UserBannedNotification(user, guild));
+            MessageDispatcher.Publish(new UserBannedNotification(user, guild), _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnUserJoinedAsync(SocketGuildUser guildUser)
         {
-            MessageDispatcher.Publish(new UserJoinedNotification(guildUser));
+            MessageDispatcher.Publish(new UserJoinedNotification(guildUser), _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnUserLeftAsync(SocketGuildUser guildUser)
         {
-            MessageDispatcher.Publish(new UserLeftNotification(guildUser));
+            MessageDispatcher.Publish(new UserLeftNotification(guildUser), _cancellationToken);
 
             return Task.CompletedTask;
         }
 
         private Task OnUserVoiceStateUpdatedAsync(SocketUser user, SocketVoiceState old, SocketVoiceState @new)
         {
-            MessageDispatcher.Publish(new UserVoiceStateNotification(user, old, @new));
+            MessageDispatcher.Publish(new UserVoiceStateNotification(user, old, @new), _cancellationToken);
 
             return Task.CompletedTask;
         }
