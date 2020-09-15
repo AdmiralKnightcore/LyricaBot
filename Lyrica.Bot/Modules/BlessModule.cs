@@ -29,23 +29,18 @@ namespace Lyrica.Bot.Modules
 
         private void InitializeGame()
         {
-            Add(BlessingType.None, 100000, "Lola has given you... **Nothing** <:LyricaShrug:731421418851663922>");
-            Add(BlessingType.Palo, 500000, "Lola has given you a **Palo** <:LolaPalo:730949712647159819>");
-            Add(BlessingType.Thigh, 10000, "Lola has given you her **lap pillow** <:LyricaComf:731468897152139276>");
-            Add(BlessingType.Kiss, 1,
-                "Lyrica has given you a **kiss~** chu~ 🤍 <:LyricaHeartstruck:731117730983313428> congratulations, you have won the game.");
-            Add(BlessingType.Pet, 100000, "Lyrica **pats your head** iiko iiko. <a:lyripet:751746332989063270>");
-            Add(BlessingType.Smug, 70000,
-                "Lyrica laughs at your tiny chance of getting kisses. **How cute.** <:LyricaHowCute:731766120289271838>");
-            Add(BlessingType.Sleep, 20000,
-                "Lyrica asks you to sleep with her. **Isshoni neyo~?** <:LyricaComf:731468897152139276>");
-            Add(BlessingType.ForceSleep, 30000, "Lyrica tells you to **go to sleep.** Now. <:LolaGun:730678785124597760>");
-            Add(BlessingType.Angry, 50000, "Lyrica **got angry at you.** Bad! Palo! <:LyricaAngry:752479627645157378>");
-            Add(BlessingType.Sing, 50000, "Lyrica **sang you a song~** <a:LyricaRaveFaster:749193869270319175>");
-            Add(BlessingType.Coffee, 40000,
-                "Lyrica **gives you some coffee** for your mornings~ <:LyricaSmug:729175259726741544>");
-            Add(BlessingType.Padoru, 30000,
-                "Lyrica sings christmas songs **PADORU PADORU** <:LyricaPadoru:731013366008643595>");
+            Add(BlessingType.None, 1000, "Lola has given you... **Nothing** <:LyricaShrug:731421418851663922>");
+            Add(BlessingType.Palo, 5000, "Lola has given you a **Palo** <:LolaPalo:730949712647159819>");
+            Add(BlessingType.Thigh, 100, "Lola has given you her **lap pillow** <:LyricaComf:731468897152139276>");
+            Add(BlessingType.Kiss, 1, "Lyrica has given you a **kiss~** chu~ 🤍 <:LyricaHeartstruck:731117730983313428> congratulations, you have won the game.");
+            Add(BlessingType.Pet, 1000, "Lyrica **pats your head** iiko iiko. <a:lyripet:751746332989063270>");
+            Add(BlessingType.Smug, 700, "Lyrica laughs at your tiny chance of getting kisses. **How cute.** <:LyricaHowCute:731766120289271838>");
+            Add(BlessingType.Sleep, 200, "Lyrica asks you to sleep with her. **Isshoni neyo~?** <:LyricaComf:731468897152139276>");
+            Add(BlessingType.ForceSleep, 300, "Lyrica tells you to **go to sleep.** Now. <:LolaGun:730678785124597760>");
+            Add(BlessingType.Angry, 500, "Lyrica **got angry at you.** Bad! Palo! <:LyricaAngry:752479627645157378>");
+            Add(BlessingType.Sing, 500, "Lyrica **sang you a song~** <a:LyricaRaveFaster:749193869270319175>");
+            Add(BlessingType.Coffee, 400, "Lyrica **gives you some coffee** for your mornings~ <:LyricaSmug:729175259726741544>");
+            Add(BlessingType.Padoru, 300, "Lyrica sings christmas songs **PADORU PADORU** <:LyricaPadoru:731013366008643595>");
 
             void Add(BlessingType type, int probability, string question)
             {
