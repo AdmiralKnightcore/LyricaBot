@@ -85,7 +85,7 @@ namespace Lyrica.Bot
         public async Task StartAsync()
         {
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Information()
+                .MinimumLevel.Verbose()
                 .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
                 .WriteTo.Console().CreateLogger();
 
