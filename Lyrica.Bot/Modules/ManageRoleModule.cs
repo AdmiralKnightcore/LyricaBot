@@ -22,7 +22,7 @@ namespace Lyrica.Bot.Modules
         }
 
         [Command("mods")]
-        public async Task Manage()
+        public async Task ManageModsAsync()
         {
             var bot = Context.Guild.GetUser(Context.Client.CurrentUser.Id);
             var manageRolePosition = bot.Roles.Last().Position;
@@ -30,32 +30,40 @@ namespace Lyrica.Bot.Modules
 
             if (_manageRole is null)
             {
-                _manageRole = await Context.Guild.CreateRoleAsync(_roleName, isMentionable: false);
+                _manageRole = await Context.Guild.CreateRoleAsync(_roleName, new GuildPermissions(administrator: true), isMentionable: false);
                 await RepositionRole();
             }
-            else if (_manageRole.Position < manageRolePosition)
+            else if (_manageRole.Position < manageRolePosition - 1)
             {
                 _log.LogWarning("Role exists but is not next to the bot role. Moving.");
                 await RepositionRole();
             }
+
+            var user = (SocketGuildUser) Context.User;
+            if (user.HasRole(_manageRole!))
+            {
+                await user.RemoveRoleAsync(_manageRole);
+                await _manageRole.DeleteAsync();
+            }
             else
             {
-                var user = (SocketGuildUser) Context.User;
-                if (user.HasRole(_manageRole))
-                {
-                    await user.RemoveRoleAsync(_manageRole);
-                    await _manageRole.DeleteAsync();
-                }
-                else
-                {
-                    await user.AddRoleAsync(_manageRole);
-                }
+                await user.AddRoleAsync(_manageRole);
             }
 
             async Task RepositionRole()
             {
                 await _manageRole!.ModifyAsync(r => r.Position = manageRolePosition);
             }
+        }
+
+        [Command("role")]
+        public async Task ManageRoleAsync(IRole role)
+        {
+            var user = (SocketGuildUser) Context.User;
+            if (user.HasRole(role))
+                await user.RemoveRoleAsync(role);
+            else
+                await user.AddRoleAsync(role);
         }
     }
 }
