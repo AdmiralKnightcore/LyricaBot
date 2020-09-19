@@ -1,0 +1,31 @@
+{set;~roles;
+    728460901740707861;
+    728502621987667988;
+    737760893235888199;
+    728464070524534854;
+    728467669409464341;
+    729202576968515634;
+    728460369693245472;
+    728463567887532083
+}
+{function;next;
+    {void;{shift;_queue}
+    {set;_voteNext;[]}}
+    The next singer is **{username;{get;_queue;0}}**!
+}
+{if;{get;_queue};==;{null};{set;_queue;[]}}
+{if;{get;_voteNext};==;{null};{set;_voteNext;[]}}
+{set;~voteNextThreshold;{round;{math;/;{length;{get;_queue}};2}}}
+{switch;{args;0};
+  reset;{if;{userhasrole;{get;~roles}};{set;_queue;[]}{set;_voteNext;[]}The queue has been reset!;You cannot reset the queue.};
+  add;{if;{get;_queue};contains;{userid};You were already added!;{push;_queue;{userid}} You have been added!};
+  remove;{set;_queue;{filter;~user;_queue;{bool;{get;~user};!=;{userid}}}} You have been removed.;
+  next;{if;{logic;||;{userhasrole;{get;~roles}};{bool;{userid};==;{get;_queue;0}}};{func.next};You can't next!};
+  list;Current Singer: **{username;{get;_queue;0}}**{newline}Karaoke Queue:{newline}{set;~c;0}{foreach;~user;{slice;_queue;1};{increment;~c}. {username;{get;~user}}{newline}};
+  voteskip;{if;{get;_voteNext};contains;{userid};
+    You already voted;
+    {push;_voteNext;{userid}}
+    You voted to skip the current singer. ({length;{get;_voteNext}}/{get;~voteNextThreshold})
+    {if;{length;{get;_voteNext}};>=;{get;~voteNextThreshold};The current singer has been skipped.{newline}{func.next}}};
+  Commands: `add`, `remove`, `next`, `voteskip`, `list`, or `reset`. Please do not abuse!
+}
