@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
+using Discord;
 using Humanizer;
 using Humanizer.Localisation;
 
@@ -13,6 +14,10 @@ namespace Lyrica.Services.Utilities
     public static class FormatUtilities
     {
         private static readonly Regex _buildContentRegex = new Regex(@"```([^\s]+|)");
+
+        private static readonly Regex _userMentionRegex = new Regex("<@!?(?<Id>[0-9]+)>", RegexOptions.Compiled);
+
+        private static readonly Regex _roleMentionRegex = new Regex("<@&(?<Id>[0-9]+)>", RegexOptions.Compiled);
 
         /// <summary>
         ///     Prepares a piece of input code for use in HTTP operations
@@ -90,7 +95,7 @@ namespace Lyrica.Services.Utilities
 
             var withDistinctParts = new HashSet<string>[groupedBySingulars.Count()][];
 
-            foreach ((var singular, var singularIndex) in groupedBySingulars.AsIndexable())
+            foreach (var (singular, singularIndex) in groupedBySingulars.AsIndexable())
             {
                 var parts = new HashSet<string>[singular.Key.Count];
 
@@ -106,11 +111,11 @@ namespace Lyrica.Services.Utilities
 
             var parenthesized = new string[withDistinctParts.Length][];
 
-            foreach ((var alias, var aliasIndex) in withDistinctParts.AsIndexable())
+            foreach (var (alias, aliasIndex) in withDistinctParts.AsIndexable())
             {
                 parenthesized[aliasIndex] = new string[alias.Length];
 
-                foreach ((var word, var wordIndex) in alias.AsIndexable())
+                foreach (var (word, wordIndex) in alias.AsIndexable())
                     if (word.Count == 2)
                     {
                         var indexOfDifference = word.First()
@@ -165,9 +170,5 @@ namespace Lyrica.Services.Utilities
         /// </summary>
         public static string SurroundNullability(this string text, bool isNullable) =>
             isNullable ? $"[{text}]" : $"<{text}>";
-
-        private static readonly Regex _userMentionRegex = new Regex("<@!?(?<Id>[0-9]+)>", RegexOptions.Compiled);
-
-        private static readonly Regex _roleMentionRegex = new Regex("<@&(?<Id>[0-9]+)>", RegexOptions.Compiled);
     }
 }
