@@ -103,11 +103,13 @@
     {set;~warnings;{params;1}}
     {set;~heart;{func.getHeart;{get;~warnings}}}
 
-    {foreach;~role;~hearts;
-        {if;{userhasrole;{jget;~role;role};{get;~user}};
-            {removerole;{jget;~role;role};{get;~user}}}
+    {if;{logic;!;{userhasrole;{jget;~heart;role};{get;~user}}};
+        {foreach;~role;~hearts;
+            {if;{userhasrole;{jget;~role;role};{get;~user}};
+                {removerole;{jget;~role;role};{get;~user}}}
+        }
+        {addrole;{func.??;{jget;~heart;role};{get;~hearts;0.role}};{get;~user}}
     }
-    {addrole;{func.??;{jget;~heart;role};{get;~hearts;0.role}};{get;~user}}
 }
 
 {//;Usage: <user> <count>}
