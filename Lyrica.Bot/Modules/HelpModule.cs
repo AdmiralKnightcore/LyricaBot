@@ -179,8 +179,8 @@ namespace Lyrica.Bot.Modules
             AppendParameters(summaryBuilder, command.Parameters);
 
             embedBuilder.AddField(
-                new EmbedFieldBuilder().WithName($"Command: `l!{name} {GetParams(command)}`")
-                    .WithValue(summaryBuilder.ToString()));
+                $"`{$"l!{name} {GetParams(command)}".TrimEnd()}`",
+                summaryBuilder.ToString());
 
             return embedBuilder;
         }
