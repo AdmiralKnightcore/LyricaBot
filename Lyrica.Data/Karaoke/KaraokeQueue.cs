@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 using Discord;
 using Discord.WebSocket;
@@ -7,15 +8,17 @@ namespace Lyrica.Data.Karaoke
 {
     public class KaraokeQueue
     {
-        public List<KaraokeEntry> Queue { get; } = new List<KaraokeEntry>();
+        public Dictionary<IGuildUser, KaraokeEntry> Queue { get; } = new Dictionary<IGuildUser, KaraokeEntry>();
 
-        public IEnumerable<KaraokeEntry> NextUp => Queue.Skip(1);
+        public IEnumerable<KaraokeEntry> NextUp => Queue.Skip(1).Select(x => x.Value);
 
-        public KaraokeEntry? CurrentSinger => Queue.FirstOrDefault();
+        public KaraokeEntry? CurrentSinger => Queue.FirstOrDefault().Value;
 
-        public KaraokeEntry? NextSinger()
+        public KaraokeEntry? NextSinger(IGuildUser? user = null)
         {
-            Queue.RemoveAt(0);
+            if (CurrentSinger != null)
+                Queue.Remove(user ?? CurrentSinger?.User ?? Queue.FirstOrDefault().Key, out _);
+
             return CurrentSinger;
         }
 
@@ -24,25 +27,22 @@ namespace Lyrica.Data.Karaoke
         public void Add(IGuildUser user, string? song = null)
         {
             var entry = new KaraokeEntry(user, song);
-            Queue.Add(entry);
+            Queue.TryAdd(user, entry);
         }
 
         public void Remove(SocketUser user) => Remove((IGuildUser) user);
 
         public void Remove(IGuildUser user)
         {
-            var entry = Queue.FirstOrDefault(e => e.User == user);
-            if (entry is null)
-                return;
-
-            Queue.Remove(entry);
+            if (Queue.TryGetValue(user, out var entry))
+                Queue.Remove(user, out _);
         }
 
         public bool HasUser(SocketUser user) => HasUser((IGuildUser) user);
 
         public bool HasUser(IGuildUser user)
         {
-            return Queue.Any(u => u.User == user);
+            return Queue.TryGetValue(user, out _);
         }
     }
 }
