@@ -24,4 +24,10 @@
     <ProjectReference Include="..\Lyrica.Services\Lyrica.Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="DiscordDaemon.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

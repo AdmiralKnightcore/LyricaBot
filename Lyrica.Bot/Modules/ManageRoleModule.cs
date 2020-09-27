@@ -40,7 +40,7 @@ namespace Lyrica.Bot.Modules
             }
 
             var user = (SocketGuildUser) Context.User;
-            if (user.HasRole(_manageRole!))
+            if (user.HasRole(_manageRole))
             {
                 await user.RemoveRoleAsync(_manageRole);
                 await _manageRole.DeleteAsync();
@@ -52,7 +52,7 @@ namespace Lyrica.Bot.Modules
 
             async Task RepositionRole()
             {
-                await _manageRole!.ModifyAsync(r => r.Position = manageRolePosition);
+                await _manageRole.ModifyAsync(r => r.Position = manageRolePosition);
             }
         }
 

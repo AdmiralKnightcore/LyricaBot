@@ -1,24 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Lyrica.Data.Karaoke;
+using Lyrica.Services.Core.Messages;
 using Lyrica.Services.Utilities;
+using MediatR;
+using Serilog;
 
 namespace Lyrica.Bot.Modules
 {
     [Group("karaoke")]
     public class KaraokeModule :
-        ModuleBase<SocketCommandContext>
+        ModuleBase<SocketCommandContext>,
+        INotificationHandler<UserVoiceStateNotification>
     {
         private const ulong KaraokeVc = 746265675797889025;
         private const ulong SingingRole = 759257307648884746;
 
-        private static readonly List<IUser> _voteSkippedUsers = new List<IUser>();
-        private static readonly KaraokeQueue _queue = new KaraokeQueue();
+        private static readonly List<IUser> VoteSkippedUsers = new List<IUser>();
+        private static readonly KaraokeQueue Queue = new KaraokeQueue();
         private static IUserMessage? _queueMessage;
+        private static bool _intermission = true;
         private readonly CommandService _commands;
         private readonly IServiceProvider _services;
 
@@ -30,7 +36,36 @@ namespace Lyrica.Bot.Modules
             _services = services;
         }
 
-        [Command]
+        public async Task Handle(
+            UserVoiceStateNotification notification,
+            CancellationToken cancellationToken)
+        {
+            var user = (IGuildUser) notification.User;
+            if (notification.Old?.VoiceChannel?.Id == KaraokeVc)
+            {
+                if (user.IsMuted)
+                    await user.ModifyAsync(u => u.Mute = false);
+                return;
+            }
+
+            if (notification.New.VoiceChannel?.Id != KaraokeVc) return;
+
+            if (!notification.New.IsSelfMuted && !notification.New.IsMuted)
+            {
+                if (!_intermission && notification.User != Queue.CurrentSinger?.User)
+                {
+                    Log.Logger.Debug("Current singer is {0} so {1} was muted", Queue.CurrentSinger?.User,
+                        notification.User);
+                    await user.ModifyAsync(u => u.Mute = true);
+                }
+            }
+            else if (notification.New.IsSelfMuted && notification.New.IsMuted)
+            {
+                await user.ModifyAsync(u => u.Mute = false);
+            }
+        }
+
+        [Command(null, true)]
         [Alias("help")]
         [Priority(-1)]
         [Summary("Views the karaoke help command")]
@@ -46,9 +81,23 @@ namespace Lyrica.Bot.Modules
         [RequireUserPermission(ChannelPermission.ManageMessages)]
         public async Task ResetQueueAsync()
         {
-            _queue.Queue.Clear();
+            Queue.Queue.Clear();
             await UpdateVcRolesAsync();
             await ReplyAsync("Queue has been reset!");
+        }
+
+        [Command("refresh", true)]
+        [Summary("Refreshes the Queue and Permissions")]
+        [RequireUserPermission(ChannelPermission.ManageMessages)]
+        public async Task RefreshQueueAsync()
+        {
+            await ReplyAsync("Refreshing Karaoke permissions");
+            await UpdateVcRolesAsync(true);
+            await UpdateVcRolesAsync();
+            Log.Logger.Debug("Queue {0}", Queue.Queue);
+            Log.Logger.Debug("Current Singer {0}", Queue.CurrentSinger?.User);
+            await ReplyAsync("Queue and permissions has been reset!");
+            await UpdateOrSendQueue();
         }
 
         [Command("skip", true)]
@@ -57,8 +106,9 @@ namespace Lyrica.Bot.Modules
         public Task SkipUserAsync() => ShowNextUserAsync();
 
         [Command("next", true)]
+        [Alias("finish", "finished", "done")]
         [Summary("Goes to the next user in the queue when you finished singing")]
-        public Task NextUserAsync() => (IGuildUser) Context.User == _queue.CurrentSinger?.User
+        public Task NextUserAsync() => (IGuildUser) Context.User == Queue.CurrentSinger?.User
             ? ShowNextUserAsync()
             : ReplyAsync("You are not the current singer!");
 
@@ -66,26 +116,26 @@ namespace Lyrica.Bot.Modules
         [Summary("Vote skips the current singer")]
         public Task VoteSkipUserAsync()
         {
-            if (_voteSkippedUsers.Contains(Context.User))
+            if (VoteSkippedUsers.Contains(Context.User))
                 return ReplyAsync("You already vote skipped!");
 
             if (!Context.Guild.GetVoiceChannel(KaraokeVc).Users.Contains(Context.User))
                 return ReplyAsync("You're not in the Karaoke VC");
 
-            _voteSkippedUsers.Add(Context.User);
+            VoteSkippedUsers.Add(Context.User);
 
             var channel = Context.Guild.GetVoiceChannel(KaraokeVc);
             var threshold = channel.Users.Count / 2;
-            if (_voteSkippedUsers.Count < threshold)
-                return ReplyAsync($"{Context.User} voted to skip! ({_voteSkippedUsers.Count}/{threshold})");
-            _voteSkippedUsers.Clear();
+            if (VoteSkippedUsers.Count < threshold)
+                return ReplyAsync($"{Context.User} voted to skip! ({VoteSkippedUsers.Count}/{threshold})");
+            VoteSkippedUsers.Clear();
             return ShowNextUserAsync();
         }
 
         private async Task ShowNextUserAsync()
         {
-            var last = _queue.CurrentSinger;
-            var next = _queue.NextUp.FirstOrDefault();
+            var last = Queue.CurrentSinger;
+            var next = Queue.NextUp.FirstOrDefault();
             if (last != null && next != null)
             {
                 var message = await ReplyAsync(
@@ -96,10 +146,11 @@ namespace Lyrica.Bot.Modules
                 await Task.Delay(TimeSpan.FromSeconds(30));
             }
 
-            _queue.NextSinger();
-            await UpdateVcRolesAsync();
+            Queue.NextSinger();
+            VoteSkippedUsers.Clear();
 
-            if (_queue.CurrentSinger is null)
+            await UpdateVcRolesAsync();
+            if (Queue.CurrentSinger is null)
             {
                 await ReplyAsync("The queue is now empty! Everyone can now speak.");
                 return;
@@ -113,22 +164,24 @@ namespace Lyrica.Bot.Modules
         public async Task AddUserAsync([Remainder] [Summary("The title of the song you will sing")]
             string? song = null)
         {
-            if (_queue.HasUser(Context.User))
+            if (Context.User == Queue.CurrentSinger?.User) await NextUserAsync();
+
+            if (Queue.HasUser(Context.User))
             {
                 await ReplyAsync($"{Context.User}, you are already in the queue!");
                 return;
             }
 
-            _queue.Add(Context.User, song);
+            Queue.Add(Context.User, song);
             await ReplyAsync($"{Context.User.Mention}, you have been added to the queue.");
 
-            if (_queue.Queue.Count == 1)
+            if (Queue.Queue.Count == 1)
             {
                 await ReplyAsync("A new queue has started! Karaoke will begin in 30 seconds!");
                 await UpdateVcRolesAsync(true);
                 await Task.Delay(TimeSpan.FromSeconds(30));
                 await ReplyAsync(
-                    $"{_queue.CurrentSinger!.User.Mention}, it's now your turn to sing! {GetSong(_queue.CurrentSinger)}");
+                    $"{Queue.CurrentSinger!.User.Mention}, it's now your turn to sing! {GetSong(Queue.CurrentSinger)}");
                 await UpdateVcRolesAsync();
             }
         }
@@ -137,12 +190,12 @@ namespace Lyrica.Bot.Modules
         [Summary("Remove yourself from the Queue")]
         public Task RemoveUserAsync()
         {
-            if (!_queue.HasUser(Context.User))
+            if (!Queue.HasUser(Context.User))
                 return ReplyAsync("You are not in the queue!");
 
-            if (_queue.CurrentSinger?.User == Context.User) return ShowNextUserAsync();
+            if (Queue.CurrentSinger?.User == Context.User) return ShowNextUserAsync();
 
-            _queue.Remove(Context.User);
+            Queue.Remove(Context.User);
             return ReplyAsync($"{Context.User.Mention} You were removed from the queue.");
         }
 
@@ -151,22 +204,32 @@ namespace Lyrica.Bot.Modules
         private async Task UpdateVcRolesAsync(bool intermission = false)
         {
             var channel = Context.Guild.GetVoiceChannel(KaraokeVc);
-            if (intermission || _queue.CurrentSinger is null)
+            if (intermission || Queue.CurrentSinger is null)
             {
+                _intermission = true;
                 await channel
                     .AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
                         new OverwritePermissions(useVoiceActivation: PermValue.Inherit));
+
+                foreach (var user in channel.Users
+                    .Where(u => u.IsMuted))
+                    await user.ModifyAsync(u => u.Mute = false);
             }
             else
             {
+                _intermission = false;
                 var role = Context.Guild.GetRole(SingingRole);
-                var currentSinger = _queue.CurrentSinger.User;
+                var currentSinger = Queue.CurrentSinger.User;
 
                 if (!currentSinger.HasRole(role)) await currentSinger.AddRoleAsync(role);
 
                 foreach (var user in role.Members
                     .Where(m => m != currentSinger))
                     await user.RemoveRoleAsync(role);
+
+                foreach (var user in channel.Users
+                    .Where(u => u != currentSinger && !u.IsSelfMuted && !u.IsMuted))
+                    await user.ModifyAsync(u => u.Mute = true);
 
                 await channel
                     .AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
@@ -176,9 +239,9 @@ namespace Lyrica.Bot.Modules
 
         private async Task UpdateOrSendQueue(KaraokeEntry? lastSinger = null, bool mention = true)
         {
-            if (_queueMessage != null) await _queueMessage.DeleteAsync();
+            if (_queueMessage != null) _ = _queueMessage.DeleteAsync();
 
-            if (_queue.CurrentSinger is null)
+            if (Queue.CurrentSinger is null)
             {
                 await ReplyAsync("There is no current singer, add yourself by doing `l!karaoke add [song]`!");
                 return;
@@ -188,13 +251,13 @@ namespace Lyrica.Bot.Modules
                 .WithTitle("Karaoke Queue")
                 .WithUserAsAuthor(Context.User)
                 .AddField("Currently Singing",
-                    $"{GetSong(_queue.CurrentSinger)} sang by {_queue.CurrentSinger.User}");
+                    $"{GetSong(Queue.CurrentSinger)} sang by {Queue.CurrentSinger.User}");
 
-            if (_queue.NextUp.Any())
+            if (Queue.NextUp.Any())
                 embed.AddField("Next Up",
                     string.Join(
                         Environment.NewLine,
-                        _queue.NextUp.Select((u, i) =>
+                        Queue.NextUp.Select((u, i) =>
                             $"{i + 1}. {GetSong(u)} sang by {u.User}")));
 
             if (lastSinger != null)
@@ -203,7 +266,7 @@ namespace Lyrica.Bot.Modules
 
             _queueMessage =
                 await ReplyAsync(
-                    $"It is now {(mention ? _queue.CurrentSinger.User.Mention : _queue.CurrentSinger.User.ToString())}'s turn to sing! They're singing {GetSong(_queue.CurrentSinger)}!",
+                    $"It is now {(mention ? Queue.CurrentSinger.User.Mention : Queue.CurrentSinger.User.ToString())}'s turn to sing! They're singing {GetSong(Queue.CurrentSinger)}!",
                     embed: embed.Build());
         }
     }
