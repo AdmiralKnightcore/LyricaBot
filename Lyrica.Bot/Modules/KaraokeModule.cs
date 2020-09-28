@@ -14,6 +14,7 @@ using Serilog;
 namespace Lyrica.Bot.Modules
 {
     [Group("karaoke")]
+    [Alias("k")]
     public class KaraokeModule :
         ModuleBase<SocketCommandContext>,
         INotificationHandler<UserVoiceStateNotification>
@@ -41,7 +42,8 @@ namespace Lyrica.Bot.Modules
             CancellationToken cancellationToken)
         {
             var user = (IGuildUser) notification.User;
-            if (notification.Old?.VoiceChannel?.Id == KaraokeVc)
+            if (notification.Old?.VoiceChannel?.Id == KaraokeVc && 
+                notification.New.VoiceChannel?.Id != KaraokeVc)
             {
                 if (user.IsMuted)
                     await user.ModifyAsync(u => u.Mute = false);
@@ -52,7 +54,7 @@ namespace Lyrica.Bot.Modules
 
             if (!notification.New.IsSelfMuted && !notification.New.IsMuted)
             {
-                if (!_intermission && notification.User != Queue.CurrentSinger?.User)
+                if (!_intermission && notification.User.Id != Queue.CurrentSinger?.User.Id)
                 {
                     Log.Logger.Debug("Current singer is {0} so {1} was muted", Queue.CurrentSinger?.User,
                         notification.User);
@@ -108,9 +110,15 @@ namespace Lyrica.Bot.Modules
         [Command("next", true)]
         [Alias("finish", "finished", "done")]
         [Summary("Goes to the next user in the queue when you finished singing")]
-        public Task NextUserAsync() => (IGuildUser) Context.User == Queue.CurrentSinger?.User
-            ? ShowNextUserAsync()
-            : ReplyAsync("You are not the current singer!");
+        public Task NextUserAsync()
+        {
+            if (_intermission)
+                return Task.CompletedTask;
+
+            return Context.User.Id == Queue.CurrentSinger?.User.Id
+                ? ShowNextUserAsync(Context.User)
+                : ReplyAsync("You are not the current singer!");
+        }
 
         [Command("voteskip", true)]
         [Summary("Vote skips the current singer")]
@@ -132,7 +140,7 @@ namespace Lyrica.Bot.Modules
             return ShowNextUserAsync();
         }
 
-        private async Task ShowNextUserAsync()
+        private async Task ShowNextUserAsync(IUser? user = null)
         {
             var last = Queue.CurrentSinger;
             var next = Queue.NextUp.FirstOrDefault();
@@ -146,7 +154,7 @@ namespace Lyrica.Bot.Modules
                 await Task.Delay(TimeSpan.FromSeconds(30));
             }
 
-            Queue.NextSinger();
+            Queue.NextSinger(user);
             VoteSkippedUsers.Clear();
 
             await UpdateVcRolesAsync();
@@ -164,7 +172,12 @@ namespace Lyrica.Bot.Modules
         public async Task AddUserAsync([Remainder] [Summary("The title of the song you will sing")]
             string? song = null)
         {
-            if (Context.User == Queue.CurrentSinger?.User) await NextUserAsync();
+            if (Context.User.Id == Queue.CurrentSinger?.User.Id)
+            {
+                if (_intermission)
+                    return;
+                await ShowNextUserAsync(Context.User);
+            }
 
             if (Queue.HasUser(Context.User))
             {
@@ -186,6 +199,15 @@ namespace Lyrica.Bot.Modules
             }
         }
 
+        [Priority(10)]
+        [Command("force add")]
+        [RequireUserPermission(ChannelPermission.ManageMessages)]
+        public async Task ForceAdd(IGuildUser user, int? position = null, [Remainder] string? song = null)
+        {
+            var entry = new KaraokeEntry(user, song);
+            Queue.Queue.Insert(position ?? 0, entry);
+        }
+
         [Command("remove", true)]
         [Summary("Remove yourself from the Queue")]
         public Task RemoveUserAsync()
@@ -193,7 +215,7 @@ namespace Lyrica.Bot.Modules
             if (!Queue.HasUser(Context.User))
                 return ReplyAsync("You are not in the queue!");
 
-            if (Queue.CurrentSinger?.User == Context.User) return ShowNextUserAsync();
+            if (Queue.CurrentSinger?.User.Id == Context.User.Id) return ShowNextUserAsync();
 
             Queue.Remove(Context.User);
             return ReplyAsync($"{Context.User.Mention} You were removed from the queue.");
