@@ -3,15 +3,17 @@ using System;
 using Lyrica.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace Lyrica.Data.Migrations
 {
     [DbContext(typeof(LyricaContext))]
-    partial class LyricaContextModelSnapshot : ModelSnapshot
+    [Migration("20200929160052_GenshinImpact")]
+    partial class GenshinImpact
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

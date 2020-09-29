@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using Discord;
 using Lyrica.Data.Bless;
+using Lyrica.Data.GenshinImpact;
 
 namespace Lyrica.Data.Users
 {
@@ -29,5 +31,7 @@ namespace Lyrica.Data.Users
         public TimeSpan? Timezone { get; set; }
 
         public Stats Stats { get; set; }
+
+        public List<GenshinAccount> GenshinAccounts { get; set; }
     }
 }
