@@ -10,7 +10,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Lyrica.Data.Migrations
 {
     [DbContext(typeof(LyricaContext))]
-    [Migration("20200929160052_GenshinImpact")]
+    [Migration("20200930045007_GenshinImpact")]
     partial class GenshinImpact
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -106,7 +106,6 @@ namespace Lyrica.Data.Migrations
             modelBuilder.Entity("Lyrica.Data.GenshinImpact.Save", b =>
                 {
                     b.Property<decimal>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("numeric(20,0)");
 
                     b.Property<Guid?>("GenshinAccountId")

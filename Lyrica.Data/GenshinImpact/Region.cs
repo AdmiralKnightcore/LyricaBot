@@ -1,10 +1,20 @@
-﻿namespace Lyrica.Data.GenshinImpact
+﻿using System;
+
+namespace Lyrica.Data.GenshinImpact
 {
     public enum Region
     {
-        America = 60,
-        Europe = 70,
-        Asia = 80,
-        TwHKMo = 90 // Taiwan, Hong Kong, Macau
+        America = 6,
+        Europe = 7,
+        Asia = 8,
+        TwHKMo = 9 // Taiwan, Hong Kong, Macau
     }
+
+    //public static class RegionExtensions
+    //{
+    //    public bool TryParseRegion(ulong id, out Region result)
+    //    {
+    //        return Enum.TryParse(id.ToString(), true, out result);
+    //    }
+    //}
 }

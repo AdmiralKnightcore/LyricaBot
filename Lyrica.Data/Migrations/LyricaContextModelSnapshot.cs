@@ -104,7 +104,6 @@ namespace Lyrica.Data.Migrations
             modelBuilder.Entity("Lyrica.Data.GenshinImpact.Save", b =>
                 {
                     b.Property<decimal>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("numeric(20,0)");
 
                     b.Property<Guid?>("GenshinAccountId")
