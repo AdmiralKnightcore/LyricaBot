@@ -123,20 +123,31 @@ namespace Lyrica.Bot.Modules
                         a.Saves.Any(s => 
                             s.Region == region)));
 
+            var options = PaginatedAppearanceOptions.Default;
+            options.FieldsPerPage = 20;
 
-            await PagedReplyAsync(PaginateAccounts(users, region));
+            var message = new PaginatedMessage()
+            {
+                Title = $"Showing results for {region}",
+                Pages = PaginateAccounts(users, region),
+                Options = options
+            };
+
+            await PagedReplyAsync(message);
         }
 
         private IEnumerable<EmbedFieldBuilder> PaginateAccounts(IEnumerable<User> users, Region region)
         {
             foreach (var user in users)
             {
-                foreach (var account in user.GenshinAccounts)
+                foreach (var account in user.GenshinAccounts.Where(a =>
+                    a.Saves.Any(s => s.Region == region)))
                 {
                     yield return new EmbedFieldBuilder()
                         .WithName(Context.Client.GetUser(user.Id).ToString())
                         .WithValue(string.Join(Environment.NewLine, account.Saves.Where(s => s.Region == region)
-                            .Select(s => $"{s.Region}: {s.Id} {(account.ActiveSave == s ? "✨" : string.Empty)}")));
+                            .Select(s => $"{s.Region}: {s.Id} {(account.ActiveSave == s ? "✨" : string.Empty)}")))
+                        .WithIsInline(true);
                 }
             }
         }
