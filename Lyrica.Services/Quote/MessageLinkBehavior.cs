@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Lyrica.Services.Quote
 {
-    public class MessageLinkBehavior : 
+    public class MessageLinkBehavior :
         INotificationHandler<MessageReceivedNotification>,
         INotificationHandler<MessageUpdatedNotification>
     {
@@ -19,7 +19,7 @@ namespace Lyrica.Services.Quote
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         public MessageLinkBehavior(
-            DiscordSocketClient discordClient, 
+            DiscordSocketClient discordClient,
             ILogger<MessageLinkBehavior> log,
             IQuoteService quoteService)
         {

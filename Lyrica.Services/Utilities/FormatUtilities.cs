@@ -5,7 +5,6 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.RegularExpressions;
-using Discord;
 using Humanizer;
 using Humanizer.Localisation;
 

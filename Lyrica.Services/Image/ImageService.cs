@@ -33,6 +33,11 @@ namespace Lyrica.Services.Image
 
     public sealed class ImageService : IImageService
     {
+        private readonly IMemoryCache _cache;
+        private readonly ColorThief _colorThief;
+
+        private readonly IHttpClientFactory _httpClientFactory;
+
         public ImageService(IHttpClientFactory httpClientFactory, IMemoryCache memoryCache)
         {
             _httpClientFactory = httpClientFactory;
@@ -64,10 +69,6 @@ namespace Lyrica.Services.Image
             return quantizedColor.ToDiscordColor();
         }
 
-        private object GetKey(Uri uri) => new {Target = "DominantColor", uri.AbsoluteUri};
-
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IMemoryCache _cache;
-        private readonly ColorThief _colorThief;
+        private object GetKey(Uri uri) => new { Target = "DominantColor", uri.AbsoluteUri };
     }
 }

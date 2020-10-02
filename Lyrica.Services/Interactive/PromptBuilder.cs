@@ -90,15 +90,11 @@ namespace Lyrica.Services.Interactive
             return Collection;
         }
 
-        public PromptCollection<TOptions> ThatHas<T>(TryParseDelegate<T> tryParse)
-        {
-            TypeReader reader = tryParse.AsTypeReader();
-            if (!Prompt.IsRequired)
-                reader = new OptionalTypeReader(reader);
+        public PromptCollection<TOptions> ThatHas<T>(TryParseDelegate<T> tryParse) =>
+            ThatHas(tryParse.AsTypeReader());
 
-            Prompt.Modify(p => p.TypeReader = reader);
-            return Collection;
-        }
+        public PromptCollection<TOptions> ThatHas<T>(EnumTryParseDelegate<T> tryParse, bool ignoreCase = true) =>
+            ThatHas(tryParse.AsTypeReader(ignoreCase));
 
         public PromptCollection<TOptions> ThatHas(ICriterion<SocketMessage> criterion)
         {

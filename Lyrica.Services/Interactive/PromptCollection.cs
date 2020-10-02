@@ -25,11 +25,7 @@ namespace Lyrica.Services.Interactive
 
         public List<Prompt<T>> Prompts { get; } = new List<Prompt<T>>();
 
-        public ICollection<ICriterion<SocketMessage>> Criteria { get; }
-
         public IServiceProvider? Services { get; }
-
-        public TypeReader? TypeReader { get; set; }
 
         public int Timeout { get; set; } = 30;
 
@@ -38,6 +34,10 @@ namespace Lyrica.Services.Interactive
         public InteractivePromptBase Module { get; }
 
         public SocketCommandContext Context => Module.Context;
+
+        public ICollection<ICriterion<SocketMessage>> Criteria { get; }
+
+        public TypeReader? TypeReader { get; set; }
     }
 
     public partial class PromptOrCollection<TOptions>

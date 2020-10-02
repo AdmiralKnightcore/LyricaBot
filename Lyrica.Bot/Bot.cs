@@ -14,6 +14,7 @@ using Lyrica.Services.Core.Messages;
 using Lyrica.Services.Help;
 using Lyrica.Services.Image;
 using Lyrica.Services.Quote;
+using Lyrica.Services.Utilities;
 using Lyrica.Services.WebHooks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -38,14 +39,12 @@ namespace Lyrica.Bot
                 .AddDbContext<LyricaContext>(ContextOptions, ServiceLifetime.Transient)
                 .AddMediatR(c => c.Using<LyricaMediator>(),
                     typeof(Bot), typeof(LyricaMediator))
-                .AddLogging(l => l
-                    .AddSerilog(dispose: true, logger: Log.Logger))
+                .AddLogging(l => l.AddSerilog())
                 .AddSingleton<InteractiveService>()
                 .AddSingleton<DiscordSocketClient>()
                 .AddSingleton<CommandService>()
                 .AddSingleton<CommandHandlingService>()
                 .AddSingleton<TwitterService>()
-                .AddSingleton<CodePasteService>()
                 .AddSingleton<IQuoteService, QuoteService>()
                 .AddCodePaste()
                 .AddAutoRemoveMessage()
@@ -84,19 +83,24 @@ namespace Lyrica.Bot
 
         public async Task StartAsync()
         {
+            var config = new ConfigurationBuilder()
+                .AddUserSecrets<LyricaConfig>()
+                .Build();
+
+            var sink = config.GetSection(nameof(LyricaConfig.DiscordWebhookSink));
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Verbose()
                 .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-                .WriteTo.Console().CreateLogger();
-
+                .WriteTo.Console()
+                .WriteTo.DiscordWebhookSink(
+                    sink.GetValue<ulong>(nameof(LyricaConfig.DiscordWebhookSink.Id)),
+                    sink.GetValue<string>(nameof(LyricaConfig.DiscordWebhookSink.Token)),
+                    LogEventLevel.Debug)
+                .CreateLogger();
             await using var services = ConfigureServices();
             var client = services.GetRequiredService<DiscordSocketClient>();
             var commands = services.GetRequiredService<CommandService>();
             var mediator = services.GetRequiredService<IMediator>();
-
-            var config = new ConfigurationBuilder()
-                .AddUserSecrets<LyricaConfig>()
-                .Build();
 
             _reconnectCts = new CancellationTokenSource();
             _mediatorToken = new CancellationTokenSource();

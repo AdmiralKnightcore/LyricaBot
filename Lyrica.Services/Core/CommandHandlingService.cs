@@ -9,6 +9,8 @@ using Lyrica.Data;
 using Lyrica.Data.Users;
 using Lyrica.Services.Core.Messages;
 using MediatR;
+using Microsoft.Extensions.Logging;
+using Serilog;
 
 namespace Lyrica.Services.Core
 {
@@ -17,6 +19,7 @@ namespace Lyrica.Services.Core
         private readonly CommandService _commands;
         private readonly LyricaContext _db;
         private readonly DiscordSocketClient _discord;
+        private readonly ILogger<CommandHandlingService> _log;
         private readonly IServiceProvider _services;
 
         public CommandHandlingService(
@@ -50,6 +53,9 @@ namespace Lyrica.Services.Core
                 await _db.Users.AddAsync(user, cancellationToken);
             }
 
+            var logger = Log.Logger.ForContext<CommandHandlingService>();
+            logger.Verbose(
+                $"{notification.Message.Author} [#{notification.Message.Channel.Name}]: {notification.Message.Content}");
             user.LastSeenAt = DateTimeOffset.Now;
             await _db.SaveChangesAsync(cancellationToken);
 

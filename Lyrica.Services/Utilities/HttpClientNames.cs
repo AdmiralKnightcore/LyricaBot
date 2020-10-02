@@ -1,7 +1,7 @@
 ﻿namespace Lyrica.Services.Utilities
 {
     /// <summary>
-    /// Provides name values for each named HttpClient that is configured in the application.
+    ///     Provides name values for each named HttpClient that is configured in the application.
     /// </summary>
     public static class HttpClientNames
     {

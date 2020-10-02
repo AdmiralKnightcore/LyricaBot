@@ -7,7 +7,7 @@ namespace Lyrica.Services.Utilities
     public class ColorUtils
     {
         /// <summary>
-        /// Returns rainbow table of <see cref="colorCount"/> colors
+        ///     Returns rainbow table of <see cref="colorCount" /> colors
         /// </summary>
         public static List<Color> GetRainbowColors(int colorCount)
         {
@@ -20,7 +20,7 @@ namespace Lyrica.Services.Utilities
         }
 
         /// <summary>
-        /// HSV -> RGB color
+        ///     HSV -> RGB color
         /// </summary>
         public static Color HsvToRgb(float h, float s, float v)
         {

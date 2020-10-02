@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using Discord;
 using Lyrica.Data.Bless;
 using Lyrica.Data.GenshinImpact;
@@ -32,6 +33,8 @@ namespace Lyrica.Data.Users
 
         public Stats Stats { get; set; }
 
-        public List<GenshinAccount> GenshinAccounts { get; set; }
+        public GenshinAccount? ActiveGenshinAccount => GenshinAccounts.LastOrDefault();
+
+        public List<GenshinAccount> GenshinAccounts { get; set; } = new List<GenshinAccount>();
     }
 }

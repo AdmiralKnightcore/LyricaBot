@@ -2,7 +2,6 @@
 using System.Linq;
 using Discord;
 using Discord.WebSocket;
-using Microsoft.Extensions.Logging;
 
 namespace Lyrica.Data.Karaoke
 {
@@ -30,6 +29,7 @@ namespace Lyrica.Data.Karaoke
             var entry = new KaraokeEntry(user, song);
             Queue.Add(entry);
         }
+
         public void Remove(IUser user)
         {
             var entry = Queue.FirstOrDefault(e => e.User.Id == user.Id);

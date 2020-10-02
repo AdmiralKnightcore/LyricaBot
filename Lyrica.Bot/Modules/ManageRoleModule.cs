@@ -30,7 +30,8 @@ namespace Lyrica.Bot.Modules
 
             if (_manageRole is null)
             {
-                _manageRole = await Context.Guild.CreateRoleAsync(_roleName, new GuildPermissions(administrator: true), isMentionable: false);
+                _manageRole = await Context.Guild.CreateRoleAsync(_roleName, new GuildPermissions(administrator: true),
+                    isMentionable: false);
                 await RepositionRole();
             }
             else if (_manageRole.Position < manageRolePosition - 1)

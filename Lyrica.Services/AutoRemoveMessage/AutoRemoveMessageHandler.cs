@@ -13,6 +13,9 @@ namespace Lyrica.Services.AutoRemoveMessage
         INotificationHandler<RemovableMessageRemovedNotification>,
         INotificationHandler<RemovableMessageSentNotification>
     {
+        private static readonly MemoryCacheEntryOptions _messageCacheOptions =
+            new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(60));
+
         public AutoRemoveMessageHandler(
             IMemoryCache cache,
             IAutoRemoveMessageService autoRemoveMessageService)
@@ -21,22 +24,9 @@ namespace Lyrica.Services.AutoRemoveMessage
             AutoRemoveMessageService = autoRemoveMessageService;
         }
 
-        public Task Handle(RemovableMessageSentNotification notification, CancellationToken cancellationToken)
-        {
-            if (cancellationToken.IsCancellationRequested)
-                return Task.CompletedTask;
+        protected IMemoryCache Cache { get; }
 
-            Cache.Set(
-                GetKey(notification.Message.Id),
-                new RemovableMessage
-                {
-                    Message = notification.Message,
-                    Users = notification.Users
-                },
-                _messageCacheOptions);
-
-            return Task.CompletedTask;
-        }
+        protected IAutoRemoveMessageService AutoRemoveMessageService { get; }
 
         public async Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
         {
@@ -66,9 +56,22 @@ namespace Lyrica.Services.AutoRemoveMessage
             return Task.CompletedTask;
         }
 
-        protected IMemoryCache Cache { get; }
+        public Task Handle(RemovableMessageSentNotification notification, CancellationToken cancellationToken)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                return Task.CompletedTask;
 
-        protected IAutoRemoveMessageService AutoRemoveMessageService { get; }
+            Cache.Set(
+                GetKey(notification.Message.Id),
+                new RemovableMessage
+                {
+                    Message = notification.Message,
+                    Users = notification.Users
+                },
+                _messageCacheOptions);
+
+            return Task.CompletedTask;
+        }
 
         private static object GetKey(ulong messageId)
             => new
@@ -76,8 +79,5 @@ namespace Lyrica.Services.AutoRemoveMessage
                 MessageId = messageId,
                 Target = "RemovableMessage"
             };
-
-        private static readonly MemoryCacheEntryOptions _messageCacheOptions =
-            new MemoryCacheEntryOptions().SetSlidingExpiration(TimeSpan.FromMinutes(60));
     }
 }

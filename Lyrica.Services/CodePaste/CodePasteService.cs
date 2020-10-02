@@ -29,7 +29,7 @@ namespace Lyrica.Services.CodePaste
         }
 
         /// <summary>
-        /// Uploads a given piece of code to the service, and returns the URL to the post.
+        ///     Uploads a given piece of code to the service, and returns the URL to the post.
         /// </summary>
         /// <param name="code">The code to post</param>
         /// <returns>The URL to the newly created post</returns>
@@ -66,7 +66,7 @@ namespace Lyrica.Services.CodePaste
         }
 
         /// <summary>
-        /// Uploads the code in the given message to the service, and returns the URL to the post.
+        ///     Uploads the code in the given message to the service, and returns the URL to the post.
         /// </summary>
         /// <param name="msg">The Discord message to upload</param>
         /// <param name="code">The string to upload instead of message content</param>

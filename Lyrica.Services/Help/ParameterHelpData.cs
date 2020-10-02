@@ -12,6 +12,20 @@ namespace Lyrica.Services.Help
 {
     public class ParameterHelpData
     {
+        private ParameterHelpData(
+            string name,
+            string? summary = null,
+            string? type = null,
+            bool isOptional = false,
+            IReadOnlyCollection<ParameterHelpData>? options = null)
+        {
+            Name = name;
+            Summary = summary;
+            Type = type;
+            IsOptional = isOptional;
+            Options = options;
+        }
+
         public string Name { get; set; }
 
         public string? Summary { get; set; }
@@ -31,25 +45,11 @@ namespace Lyrica.Services.Help
             {
                 var t when t.IsEnum => FromEnum(t.GetEnumValues()),
                 var t when t.GetAttribute<NamedArgumentTypeAttribute>() != null =>
-                FromNamedArgumentInfo(parameter.Type),
+                    FromNamedArgumentInfo(parameter.Type),
                 _ => null
             };
 
             return new ParameterHelpData(name, summary, typeName, isNullable || parameter.IsOptional, options);
-        }
-
-        private ParameterHelpData(
-            string name,
-            string? summary = null,
-            string? type = null,
-            bool isOptional = false,
-            IReadOnlyCollection<ParameterHelpData>? options = null)
-        {
-            Name = name;
-            Summary = summary;
-            Type = type;
-            IsOptional = isOptional;
-            Options = options;
         }
 
         private static IReadOnlyCollection<ParameterHelpData> FromEnum(IEnumerable names)

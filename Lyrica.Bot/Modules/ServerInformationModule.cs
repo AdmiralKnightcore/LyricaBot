@@ -114,7 +114,7 @@ namespace Lyrica.Bot.Modules
             if (ruleNo > MainRules.Count || ruleNo < 1)
                 return ReplyAsync($"There are only 1-{MainRules.Count} rules!");
 
-            var (title, description) = MainRules[(int)ruleNo - 1];
+            var (title, description) = MainRules[(int) ruleNo - 1];
             var embed = new EmbedBuilder()
                 .WithColor(Rgb(247, 209, 211))
                 .WithTitle(title)

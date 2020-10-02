@@ -11,8 +11,8 @@ namespace Lyrica.Bot.Behaviors
 {
     public class MissingGuildBehavior : INotificationHandler<ReadyNotification>
     {
-        private readonly LyricaContext _db;
         private readonly DiscordSocketClient _client;
+        private readonly LyricaContext _db;
 
         public MissingGuildBehavior(LyricaContext db, DiscordSocketClient client)
         {

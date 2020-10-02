@@ -9,6 +9,9 @@ namespace Lyrica.Services.Interactive.TypeReaders
         public static TryParseTypeReader<T> AsTypeReader<T>(this TryParseDelegate<T> tryParse) =>
             new TryParseTypeReader<T>(tryParse);
 
+        public static EnumTryParseTypeReader<T> AsTypeReader<T>(this EnumTryParseDelegate<T> tryParse, bool ignoreCase = true) =>
+            new EnumTryParseTypeReader<T>(tryParse, ignoreCase);
+
         public static TypeReaderCriterion AsCriterion(this TypeReader reader, IServiceProvider? services = null) =>
             new TypeReaderCriterion(reader, services);
     }

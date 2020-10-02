@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Lyrica.Data.GenshinImpact
+﻿namespace Lyrica.Data.GenshinImpact
 {
     public enum Region
     {

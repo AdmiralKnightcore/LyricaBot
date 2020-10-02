@@ -8,8 +8,6 @@ namespace Lyrica.Services.Interactive.Criteria
 {
     public class CriteriaCriterion<T> : ICriterion<T>
     {
-        public IEnumerable<ICriterion<T>> Criteria { get; }
-
         public CriteriaCriterion(IEnumerable<ICriterion<T>> criteria)
         {
             Criteria = criteria;
@@ -25,7 +23,7 @@ namespace Lyrica.Services.Interactive.Criteria
             Criteria = criteria.Concat(newCriteria);
         }
 
-        public CriteriaCriterion<T> With(ICriterion<T> criterion) => new CriteriaCriterion<T>(Criteria, criterion);
+        public IEnumerable<ICriterion<T>> Criteria { get; }
 
         public async Task<bool> JudgeAsync(SocketCommandContext sourceContext, T parameter)
         {
@@ -36,5 +34,7 @@ namespace Lyrica.Services.Interactive.Criteria
 
             return results.All(r => r);
         }
+
+        public CriteriaCriterion<T> With(ICriterion<T> criterion) => new CriteriaCriterion<T>(Criteria, criterion);
     }
 }

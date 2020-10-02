@@ -129,7 +129,8 @@ namespace Lyrica.Services.Core
             Cacheable<IMessage, ulong> oldMessage, SocketMessage newMessage,
             ISocketMessageChannel channel)
         {
-            MessageDispatcher.Publish(new MessageUpdatedNotification(oldMessage, newMessage, channel), _cancellationToken);
+            MessageDispatcher.Publish(new MessageUpdatedNotification(oldMessage, newMessage, channel),
+                _cancellationToken);
 
             return Task.CompletedTask;
         }

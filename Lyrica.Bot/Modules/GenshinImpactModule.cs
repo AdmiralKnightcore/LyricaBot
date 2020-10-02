@@ -1,20 +1,18 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Addons.Interactive;
 using Discord.Commands;
-using LinqToTwitter;
 using Lyrica.Data;
 using Lyrica.Data.GenshinImpact;
+using Lyrica.Data.Users;
 using Lyrica.Services.Interactive;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using static Lyrica.Bot.Modules.GenshinImpactModule.AccountPrompts;
 using static Lyrica.Data.GenshinImpact.GenshinAccount;
-using User = Lyrica.Data.Users.User;
 
 namespace Lyrica.Bot.Modules
 {
@@ -51,7 +49,7 @@ namespace Lyrica.Bot.Modules
             }
 
             var loginType = new EmbedFieldBuilder()
-                .WithName("Login Types")
+                .WithName("Login Types (Type it in)")
                 .WithValue("※ Email" + Environment.NewLine +
                            "※ Username" + Environment.NewLine +
                            "※ Twitter" + Environment.NewLine +
@@ -61,7 +59,7 @@ namespace Lyrica.Bot.Modules
             var answers = await this.CreatePromptCollection<AccountPrompts>()
                 .WithTimeout(30)
                 .WithPrompt(AccountPrompts.LoginType, "Enter your account login type.", new[] { loginType })
-                .ThatHas<LoginType>(Enum.TryParse)
+                    .ThatHas((string s, bool b, out LoginType a) => Enum.TryParse(s, b, out a))
                 .WithPrompt(Username, "Enter your username/email")
                 .Collection.GetAnswersAsync();
 
@@ -106,7 +104,6 @@ namespace Lyrica.Bot.Modules
 
             user.ActiveGenshinAccount.Saves.Add(new Save(id));
             await _db.SaveChangesAsync();
-            
 
             await ReplyAsync("Your save was added.");
         }
@@ -118,15 +115,15 @@ namespace Lyrica.Bot.Modules
             var users = _db.Users
                 .Include(u => u.GenshinAccounts)
                 .ThenInclude(a => a.Saves)
-                .Where(u => 
-                    u.GenshinAccounts.Any(a => 
-                        a.Saves.Any(s => 
+                .Where(u =>
+                    u.GenshinAccounts.Any(a =>
+                        a.Saves.Any(s =>
                             s.Region == region)));
 
             var options = PaginatedAppearanceOptions.Default;
             options.FieldsPerPage = 20;
 
-            var message = new PaginatedMessage()
+            var message = new PaginatedMessage
             {
                 Title = $"Showing results for {region}",
                 Pages = PaginateAccounts(users, region),
@@ -139,17 +136,13 @@ namespace Lyrica.Bot.Modules
         private IEnumerable<EmbedFieldBuilder> PaginateAccounts(IEnumerable<User> users, Region region)
         {
             foreach (var user in users)
-            {
-                foreach (var account in user.GenshinAccounts.Where(a =>
-                    a.Saves.Any(s => s.Region == region)))
-                {
-                    yield return new EmbedFieldBuilder()
-                        .WithName(Context.Client.GetUser(user.Id).ToString())
-                        .WithValue(string.Join(Environment.NewLine, account.Saves.Where(s => s.Region == region)
-                            .Select(s => $"{s.Region}: {s.Id} {(account.ActiveSave == s ? "✨" : string.Empty)}")))
-                        .WithIsInline(true);
-                }
-            }
+            foreach (var account in user.GenshinAccounts.Where(a =>
+                a.Saves.Any(s => s.Region == region)))
+                yield return new EmbedFieldBuilder()
+                    .WithName(Context.Client.GetUser(user.Id).ToString())
+                    .WithValue(string.Join(Environment.NewLine, account.Saves.Where(s => s.Region == region)
+                        .Select(s => $"{s.Region}: {s.Id} {(account.ActiveSave == s ? "✨" : string.Empty)}")))
+                    .WithIsInline(true);
         }
     }
 }

@@ -146,13 +146,6 @@ namespace Lyrica.Bot.Modules
             return false;
         }
 
-        [Flags]
-        private enum HelpDataType
-        {
-            Command = 1 << 1,
-            Module = 1 << 2
-        }
-
         private EmbedBuilder GetEmbedForModule(ModuleHelpData module)
         {
             var embedBuilder = new EmbedBuilder()
@@ -258,6 +251,13 @@ namespace Lyrica.Bot.Modules
             }
 
             return parameter.Name.SurroundNullability(parameter.IsOptional);
+        }
+
+        [Flags]
+        private enum HelpDataType
+        {
+            Command = 1 << 1,
+            Module = 1 << 2
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using Discord;
 using Discord.Webhook;
-using Lyrica.Services.CodePaste;
 using Newtonsoft.Json;
 using Serilog;
 using Serilog.Configuration;
@@ -14,7 +13,6 @@ namespace Lyrica.Services.Utilities
         : ILogEventSink,
             IDisposable
     {
-        private readonly CodePasteService _codePasteService;
         private readonly DiscordWebhookClient _discordWebhookClient;
         private readonly IFormatProvider _formatProvider;
         private readonly JsonSerializerSettings _jsonSerializerSettings;
@@ -22,10 +20,8 @@ namespace Lyrica.Services.Utilities
         public DiscordWebhookSink(
             ulong webhookId,
             string webhookToken,
-            IFormatProvider formatProvider,
-            CodePasteService codePasteService)
+            IFormatProvider formatProvider)
         {
-            _codePasteService = codePasteService;
             _discordWebhookClient = new DiscordWebhookClient(webhookId, webhookToken);
             _formatProvider = formatProvider;
 
@@ -37,6 +33,9 @@ namespace Lyrica.Services.Utilities
             };
         }
 
+        public void Dispose()
+            => _discordWebhookClient.Dispose();
+
         public void Emit(LogEvent logEvent)
         {
             const int DiscordStringTruncateLength = 1000;
@@ -45,7 +44,7 @@ namespace Lyrica.Services.Utilities
 
             var message = new EmbedBuilder()
                 .WithAuthor("DiscordLogger")
-                .WithTitle("Modix")
+                .WithTitle("Lyrica Bot")
                 .WithTimestamp(DateTimeOffset.UtcNow)
                 .WithColor(Color.Red);
 
@@ -58,14 +57,14 @@ namespace Lyrica.Services.Utilities
                     .WithName($"LogLevel: {logEvent.Level}")
                     .WithValue(Format.Code(messagePayload.TruncateTo(DiscordStringTruncateLength))));
 
-                var eventAsJson = JsonConvert.SerializeObject(logEvent, _jsonSerializerSettings);
+                //var eventAsJson = JsonConvert.SerializeObject(logEvent, _jsonSerializerSettings);
 
-                var url = _codePasteService.UploadCodeAsync(eventAsJson, "json").GetAwaiter().GetResult();
+                //var url = _codePasteService.UploadCodeAsync(eventAsJson, "json").GetAwaiter().GetResult();
 
-                message.AddField(new EmbedFieldBuilder()
-                    .WithIsInline(false)
-                    .WithName("Full Log Event")
-                    .WithValue($"[view on paste.mod.gg]({url})"));
+                //message.AddField(new EmbedFieldBuilder()
+                //    .WithIsInline(false)
+                //    .WithName("Full Log Event")
+                //    .WithValue($"[view on paste.mod.gg]({url})"));
             }
             catch (Exception ex)
             {
@@ -86,19 +85,16 @@ namespace Lyrica.Services.Utilities
                     .WithValue(Format.Code($"{ex.ToString().TruncateTo(DiscordStringTruncateLength)}")));
             }
 
-            _discordWebhookClient.SendMessageAsync(string.Empty, embeds: new[] {message.Build()},
-                username: "Modix Logger");
+            _discordWebhookClient.SendMessageAsync(string.Empty, embeds: new[] { message.Build() },
+                username: "Lyrica Logger");
         }
-
-        public void Dispose()
-            => _discordWebhookClient.Dispose();
     }
 
     public static class DiscordWebhookSinkExtensions
     {
         public static LoggerConfiguration DiscordWebhookSink(this LoggerSinkConfiguration config, ulong id,
-            string token, LogEventLevel minLevel, CodePasteService codePasteService) =>
-            config.Sink(new DiscordWebhookSink(id, token, null, codePasteService), minLevel);
+            string token, LogEventLevel minLevel) =>
+            config.Sink(new DiscordWebhookSink(id, token, null), minLevel);
     }
 
     public static class LoggingExtensions
