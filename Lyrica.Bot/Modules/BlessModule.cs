@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Lyrica.Data;
@@ -41,8 +42,24 @@ namespace Lyrica.Bot.Modules
                 return;
 
             var blessing = _wheel.SelectRandom();
-            await notification.Message.Channel.SendMessageAsync(
-                $"{notification.Message.Author.Mention} {blessing.Text}");
+            if (blessing.Type == BlessingType.Kiss)
+            {
+                var embed = new EmbedBuilder()
+                    .WithUserAsAuthor(Context.User)
+                    .WithTitle("You have been kissed")
+                    .WithDescription(blessing.Text)
+                    .WithColor(0xFA877F)
+                    .WithCurrentTimestamp();
+
+                await notification.Message.Channel.SendMessageAsync(
+                    notification.Message.Author.Mention,
+                    embed: embed.Build());
+            }
+            else
+            {
+                await notification.Message.Channel.SendMessageAsync(
+                    $"{notification.Message.Author.Mention} {blessing.Text}");
+            }
 
             await AwardUserAsync(blessing, channel.Guild, (SocketGuildUser) notification.Message.Author);
         }
