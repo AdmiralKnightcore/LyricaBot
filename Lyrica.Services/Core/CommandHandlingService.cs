@@ -10,7 +10,6 @@ using Lyrica.Data.Users;
 using Lyrica.Services.Core.Messages;
 using MediatR;
 using Microsoft.Extensions.Logging;
-using Serilog;
 
 namespace Lyrica.Services.Core
 {
@@ -24,6 +23,7 @@ namespace Lyrica.Services.Core
 
         public CommandHandlingService(
             IServiceProvider services,
+            ILogger<CommandHandlingService> log,
             CommandService commands,
             DiscordSocketClient discord,
             LyricaContext db)
@@ -32,6 +32,7 @@ namespace Lyrica.Services.Core
             _services = services;
             _discord = discord;
             _db = db;
+            _log = log;
 
             _commands.CommandExecuted += CommandExecutedAsync;
         }
@@ -46,16 +47,15 @@ namespace Lyrica.Services.Core
             if (message.Source != MessageSource.User)
                 return;
 
-            var user = await _db.Users.FindAsync(notification.Message.Author.Id);
+            var author = notification.Message.Author;
+            var user = await _db.Users.FindAsync(author.Id);
             if (user == null)
             {
-                user = new User((IGuildUser) notification.Message.Author);
+                user = new User((IGuildUser) author);
                 await _db.Users.AddAsync(user, cancellationToken);
             }
 
-            var logger = Log.Logger.ForContext<CommandHandlingService>();
-            logger.Verbose(
-                $"{notification.Message.Author} [#{notification.Message.Channel.Name}]: {notification.Message.Content}");
+            _log.LogTrace($"{author} [#{notification.Message.Channel.Name}]: {notification.Message.Content}");
             user.LastSeenAt = DateTimeOffset.Now;
             await _db.SaveChangesAsync(cancellationToken);
 
