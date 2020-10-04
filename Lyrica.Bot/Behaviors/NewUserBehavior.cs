@@ -15,6 +15,7 @@ namespace Lyrica.Bot.Behaviors
         private const ulong GuildId = 728459950468104284;
         private const ulong RulesChannelId = 756037831616495626;
         private const ulong ReactionRoleMessageId = 756616075646337165;
+        private const long FlowerId = 731456070601408612;
 
         private readonly ulong[] _joinRoles =
         {
@@ -25,8 +26,7 @@ namespace Lyrica.Bot.Behaviors
 
         private readonly ulong[] _reactRoles =
         {
-            728609118486528101, // SiniGang
-            728903243035443251  // 4 hearts
+            728609118486528101 // SiniGang
         };
 
         public NewUserBehavior(ILogger<NewUserBehavior> logger)
@@ -43,7 +43,8 @@ namespace Lyrica.Bot.Behaviors
                 return;
             }
 
-            var isFlower = notification.Reaction.Emote.Name == "<:LyricaFlower:731456070601408612>";
+            var isFlower = notification.Reaction.Emote is Emote emote &&
+                           emote.Id == FlowerId;
             var isChannel = notification.Reaction.Channel.Id == RulesChannelId;
             var isMessage = (await notification.Message.GetOrDownloadAsync())?.Id == ReactionRoleMessageId;
             if (isFlower && isChannel && isMessage)
