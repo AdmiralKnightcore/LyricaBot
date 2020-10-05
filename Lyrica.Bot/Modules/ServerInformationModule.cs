@@ -22,7 +22,10 @@ namespace Lyrica.Bot.Modules
             Stream,
             React,
             ModMail,
-            Warning
+            Warning,
+            Channel,
+            Role,
+            Social
         }
 
         private const string _serverAvatarUrl = "https://chito.ge/5cH9TCA.gif?_raw=true";
@@ -131,45 +134,73 @@ namespace Lyrica.Bot.Modules
         private static Dictionary<ulong, string> ChannelDescriptions { get; } = new Dictionary<ulong, string>
         {
             // Important
-            [756037831616495626] = "The channel for the rule of the server, please read them if you don’t want trouble on the server. (You are old enough to be responsible so please follow them in moderation)",
-            [728465580331630604] = "The main channel for announcements. This shows the main updates for the server and the community.",
+            [756037831616495626] = "The channel for the rules of the server, " +
+                                   "please read them if you don’t want trouble on the server. ",
+            [750764789063745627] = "The channel you are looking at right now.",
+            [728465580331630604] = "The main channel for announcements. " +
+                                   "This shows the main updates for the server and the community.",
 
             // Lyrica Ch.
             [728739356139061309] = "The main channel that notifies you on stream schedule and updates.",
             [728471208005337109] = "Post suggestions for streams here.",
 
             // Chat
-            [761744127351586826] = "Please converse in English. You may speak other languages, however always speak in English to prevent alienation. Refrain from posting excessive image memes, post them on #the-funny instead.",
-            [761749895027228692] = "Pwedeng makipag talakayan sa wikang tagalog at iba pang mga dayalekto dito. Bawasan ang mga di nararapat na talakayan. Laging sundin ang batas sa #rules.",
-            [728608245752659999] = "If you’re stuck or don’t know what to do, ask here! This is also the main place for greeting like #general.",
-            [728477659151204444] = "Introduce yourself here. (Again this is for people who have recently joined, plz do not talk in this channel, its mainly for introductions only)",
+            [761744127351586826] = "Please converse in English. You may speak other languages, " +
+                                   "however always speak in English to prevent alienation. " +
+                                   "Refrain from posting excessive image memes, post them on <#751118105480265789> instead.",
+            [761749895027228692] = "Pwedeng makipag talakayan sa wikang tagalog at iba pang mga dayalekto dito. " +
+                                   "Bawasan ang mga di nararapat na talakayan. Laging sundin ang batas sa #rules.",
+            [728608245752659999] = "If you’re stuck or don’t know what to do, ask here! " +
+                                   "This is also the main place for greeting like #general.",
+            [728477659151204444] = "Introduce yourself here and let us know about you!",
 
             // Community
             [729620759906877451] = "Post suggestions for the server and community here.",
             [737796981019246592] = "Song Covers uploaded by Lyrica that is only exclusive for the discord server.",
-            [735555361255194634] = "Channel for the official Lore of the 77th Mahou Shoujo Generation: This is connected to lyrica’s character story and revolves around the world around her.",
+            [735555361255194634] = "Channel for the official Lore of the 77th Mahou Shoujo Generation: " +
+                                   "This is connected to lyrica’s character story and revolves around the world around her.",
             [728853984076496928] = "Updates you on Lyrica’s tweets.",
-            [728471575187423304] = @"Channel to post Lyrica fanart (This is specifically a fanart channel for lyrica only, they are also being monitored to be collected and featured for stream)
-[Please appreciate all types of artstyle, look into the efforts on what the artist has created, not its quality, Traced art will only be accepted if it has proper credit to the original artist to avoid trouble (failure to credit the original artist from the traced art will lead to the artist banned from fanart feature)",
-            [728617392791355472] = "Post Lyrica-related/Lyrica’s stream related memes here. Other memes go to #the-funny",
+            [728471575187423304] = "Channel to post Lyrica fanart " +
+                                   "(This is specifically a fanart channel for lyrica only, " +
+                                   "they are also being monitored to be collected and featured for stream)" + Environment.NewLine +
+                                   "[Please appreciate all kinds of art styles, " +
+                                   "look into the efforts on what the artist has created, not its quality, " +
+                                   "Traced art will only be accepted if it has proper credit " +
+                                   "to the original artist to avoid trouble " +
+                                   "(failure to credit the original artist from the traced art " +
+                                   "will lead to the artist banned from fanart feature)",
+            [728617392791355472] = "Post Lyrica-related/Lyrica’s stream related memes here. " +
+                                   "Other memes go to <#751118105480265789>",
             [728575696099737630] = "Share Lyrica-related Youtube and Twitch clips here.",
-            [735528170085679205] = "In relation to #lyrica-lore, it is the place where members can talk about/give ideas to update the lore. Parodies are entertained but please avoid being rude/toxic from your stories.",
-            [739898192857923586] = "Post appreciative essays for Lyrica. Refrain from posting memes. This is also an appreciation channel, not a chat channel.",
+            [735528170085679205] = "In relation to #lyrica-lore, it is the place where " +
+                                   "members can talk about/give ideas to update the lore. " +
+                                   "Parodies are entertained but please avoid being rude/toxic from your stories.",
+            [739898192857923586] = "Post appreciative essays for Lyrica. " +
+                                   "Refrain from posting memes. " +
+                                   "This is also an appreciation channel, not a chat channel.",
 
             // Server History
-            [728521445369708576] = "Starred moments in Lyrica’s SiniGANG Discord server. ( it needs 8 star reacts for that specific message for it to be logged at #sinigang-moments)",
+            [728521445369708576] = "Starred moments in Lyrica’s SiniGANG Discord server. " +
+                                   "(it needs 8 star reacts for that specific message for it to be logged at <#728521445369708576>)",
             [733311526424805467] = "History of the server which keeps track of what happened per day. ",
 
             // Topic Channels
-            [730036135249838141] = "Channel where they can discuss gaming and tech stuff. (Including gaming links, PC/Laptop specs, etc.)",
-            [731519139167993916] = @"A Channel to discuss anything Anime / Manga related content.
-            Be warned that potential Spoilers may be found here 
-            (Use of Spoiler Tag is recommended)",
-            [751118105480265789] =
-                "Found a funny picture/meme? You can post it here! Just make sure it’s doesn’t break any rules (In regarding of funny memes/pictures, cursed things are fine as long as they do not condone/approve serious things like life problems and suicide and inappropriate images)",
-            [731217745211031633] = "Game with a 0.0001% or 1/10000 of a kiss. Do 'bless me, lola', 'bless me!', 'lola bless', ':LolaBless:' to try your chances! (Those who won this gacha will earn the Kissed by Lola Role for reward!)",
+            [730036135249838141] = "Channel where they can discuss gaming and tech stuff. " +
+                                   "(Including gaming links, PC/Laptop specs, etc.)",
+            [731519139167993916] = "A Channel to discuss anything Anime / Manga related content. " +
+                                   "Be warned that potential Spoilers may be found here. " +
+                                   "(Use of Spoiler Tag is recommended)",
+            [751118105480265789] = "Found a funny picture/meme? You can post it here! " +
+                                   "Just make sure it’s doesn’t break any rules " +
+                                   "(In regarding of funny memes/pictures, " +
+                                   "cursed things are fine as long as they do not condone/approve serious things " +
+                                   "like life problems and suicide and inappropriate images)",
+            [731217745211031633] = "Game with a 0.0001% or 1/10000 of a kiss. " +
+                                   "Do `bless me, lola`, `bless me!`, `lola bless`, '<:LolaBless:731455738152747108>' " +
+                                   "to try your chances! " +
+                                   "(Those who won this gacha will earn the Kissed by Lola Role for reward!)",
             [728519103454642248] = "Channel to do bot commands, and a free place to play with the bots in the server.",
-            [755125987485810859] = "horror-stories",
+            [755125987485810859] = "Post horror stories in this channel. Part of Spooktober.",
 
             // Other Communities
             [729566704073441311] = "Channel to share your creative works like art, music, literature, editing, etc.",
@@ -178,99 +209,129 @@ namespace Lyrica.Bot.Modules
             [728468134431948861] = "Channel to notify streams from other fellow vtubers.",
 
             // Voice Channels
-            [731918978510880829] = "Main chat channel for those in vc. Please only direct your topic on vc here not in general/fil-chat to avoid cluttering of topics.",
+            [731918978510880829] = "Main chat channel for those in vc. " +
+                                   "Please only direct your topic on vc here not in general/fil-chat " +
+                                   "to avoid cluttering of topics.",
             [752163296307707974] = "The place where you can talk about the song being played on the music vcs.",
-            [759939483185053726] = "",
-            [728615656563671117] = "Channel for Groovy and Rythm bot commands. For adding/removing songs played in Groovy and Rhythm VCs  (Remember to disconnect them before leaving)"
+            [728615656563671117] = "Channel for Groovy and Rythm bot commands. " +
+                                   "For adding/removing songs played in Groovy and Rhythm VCs  " +
+                                   "(Remember to disconnect them before leaving)"
         };
 
         public static Dictionary<ulong, string> RoleDescriptions { get; } = new Dictionary<ulong, string>
         {
-            [728460901740707861] = "Lyrica's Role. As the owner of the server (Shannon Included). Also the name of their unit.",                                                            // 🌟 77th Gen Mahou Shoujo 🌟
-            [728502621987667988] = "Wightwulf's role.  He’s the person closest to contact about important things when it comes to her channels/content (For Ex: Collabs, Scheduling, etc)", // President Wulf
-            [759707412692992080] = "",                                                                                                                                                      // Manage Mod
-            [762289957501927457] = "",                                                                                                                                                      // Lyrica Ch.
-            [743442874779172937] = "",                                                                                                                                                      // ModMail
-            [737760893235888199] =
-                "The people behind overseeing everything that happens in the server and other platforms. They are 2nd in the chain of command, when it comes to important regards, feel free to message them if you have something serious to talk to about the server.", // Muse and Escort
+            [728460901740707861] = "Lyrica's Role. As the owner of the server (Shannon Included). A" +
+                                   "lso the name of their unit.",
+            [728502621987667988] = "Wightwulf's role.  He’s the person closest to contact " +
+                                   "about important things when it comes to her channels/content " +
+                                   "(For Ex: Collabs, Scheduling, etc)",
+            [759707412692992080] = string.Empty, // Manage Mod
+            [762289957501927457] = string.Empty, // Lyrica Ch.
+            [743442874779172937] = string.Empty, // ModMail
+            [737760893235888199] = "The people behind overseeing everything that happens in the server and other platforms. " +
+                                   "They are 2nd in the chain of command, when it comes to important regards, " +
+                                   "feel free to message them if you have something serious to talk to about the server.",
 
-            // [748848865897349131] = "", // — Bots —
-            // [728600674362982451] = "", // blargbot
-            // [730026759843741746] = "", // Lola Bot
-            // [728516815726182421] = "", // Dyno
-            // [728516936899624971] = "", // carl-bot
-            // [728517204903198730] = "", // Tatsu
-            // [728881195298848818] = "", // Nadeko
-            // [729377067308941393] = "", // Rythm
-            // [729378331065319474] = "", // Groovy
-            // [748780146168954922] = "", // WulfBot
+            [748848865897349131] = string.Empty, // — Bots —
+            [728600674362982451] = string.Empty, // blargbot
+            [730026759843741746] = string.Empty, // Lola Bot
+            [728516815726182421] = string.Empty, // Dyno
+            [728516936899624971] = string.Empty, // carl-bot
+            [728517204903198730] = string.Empty, // Tatsu
+            [728881195298848818] = string.Empty, // Nadeko
+            [729377067308941393] = string.Empty, // Rythm
+            [729378331065319474] = string.Empty, // Groovy
+            [748780146168954922] = string.Empty, // WulfBot
 
-            [748849059812606062] = "",                                                                                                                                   // — Mods —
-            [728464070524534854] = "The people who help out implementing and enforcing out the rules, as well as help regulate both the peace and chaos of the server.", // Mods
-            // [758353453687898174] = "", // Mods with Ahegao Jacket
-            [729202576968515634] = "People who assist the Main Mods and the Mods in their duties. Mainly moderators that are Discord only.", // Smol Mods
-            // [747170160955359334] = "", // 1st Gen Mod
-            // [747170440077639700] = "", // 2nd Gen Mod
-            // [747170445413056645] = "", // 3rd Gen Mod
-            // [747170445643743382] = "", // 4th Gen Mod
-            // [728460369693245472] = "", // Twitch Mods
-            // [728463567887532083] = "", // YouTube Mods
+            [748849059812606062] = string.Empty, // — Mods —
+            [728464070524534854] = "The people who help out implementing and enforcing out the rules, " +
+                                   "as well as help regulate both the peace and chaos of the server.",
+            [758353453687898174] = string.Empty, // Mods with Ahegao Jacket
+            [729202576968515634] = "People who assist the Main Mods and the Mods in their duties. " +
+                                   "Mainly moderators that are Discord only.",
+            [747170160955359334] = string.Empty, // 1st Gen Mod
+            [747170440077639700] = string.Empty, // 2nd Gen Mod
+            [747170445413056645] = string.Empty, // 3rd Gen Mod
+            [747170445643743382] = string.Empty, // 4th Gen Mod
+            [728460369693245472] = string.Empty, // Twitch Mods
+            [728463567887532083] = string.Empty, // YouTube Mods
 
-            [748845428413431858] = "", // — Groupings —
-            [729872365353435196] =
-                "ULTIMATE SIMPS/Recognized Donators by Lyrica/End game. This is rewarded to people who have donate at least 100USD to gain instantly, or given by Lyrica herself (Honorary Title of Knighthood granted by Lyrica)",   // Knights
-            [728462786736422935] = "Automated Role. Tier 3 Subscribers on Twitch (Your twitch must be linked on Discord so that you can automatically get the role from the bot)",                                                    // BingoWinners
-            [762228685905854475] = "It's a milestone award role rewarded to the most active/Noisy people on the server who got 150K tatsu Points. The tatsumaki bot gives points by checking those who chat every around 2 minutes.", // Awit Lodi
-            [730075825143021678] = "Reward Role. Won 5 tetris games on tetris streams.",                                                                                                                                              // Tetris Champions
-            [737917005369442404] = "Moderators who have now stepped down from their role.",                                                                                                                                           // Veterans/Retired
-            [731807968940523560] =
-                "People who are able to receive the super rare kiss from lola in the Blessing Game. (Sometimes Lyrica gives away the role) (Mods also get the role for free apparently) (This is basically gacha channel) (Best Gacha channel)", // Kissed by Lola
-            [728610551378477137] = "Automated Role. People who boosted the server using nitro boost.", // Nitro Booster
-            [728462786736422932] = "Automated Role. Tier 1 Subscribers on Twitch (Similar to Bingo Winners. Your twitch account should be linked to discord so the bot can give you the role)", // BingoBoomers
-            [745594372644536480] = "It is a role rewarded to the major builders of monumental landmarks in the Minecraft Server", // Minecraft Contributor ⛏
-            [729248749968293920] = "A reward given to those who helped giving out ideas in the server, contributed emotes, and aided the server generally.", // Community Contributor 🌟
-            [755409349039489033] = "A reward given to the people who helped out Poffi  with listing campers before the new camping system.", // Camping Companions
-            [741534040883986464] = "Liliana Vampaia’s role.", // Tomato Lover
-            [728676190952620133] = "The Halohalolive and Kalbolive group of Vtubers. Includes Kaheru, Arisa, Spica, YanchaGogo, Yuma Yamano, and Himeko Sae.", // HaloHaloLive Girls
-            [728679916169592923] = "The Hanamori group of Artists and Vtubers. Includes Ryuusei Nova, Asagiri Yua, Ichika Maia, Asahina Chie, Xiaochao, Akatora Chimon, and Seigi.", // 🌸 Hanamori
-            [729873227639160882] = "For people who made fanart of Lyrica and have been featured on stream.(Formerly called Resident Drawers, the name Orocan is from a brand of a drawer)", // Resident Orocan
-            [748851133308600333] = "People who are in charge of managing the #server-history channel They are.the chroniclers of the history of the server. ", // Server Historian
-            [740511093968863232] = "Hosts of the Unscuffed Podcast back in July. People who recapped on the contents of the #server-history channel back in July", // Unscuffed Host
-            [728468630387294269] = "Fellow VTubers.  People who use a Virtual character to do YouTube/Twitch", // VTubers
-            [753414363569717348] = "Spuds.. Nagi-related role. (For context: Nagi is lola’s potato)", // Potato 🥔
+            [748845428413431858] = string.Empty, // — Groupings —
+            [729872365353435196] = "ULTIMATE SIMPS/Recognized Donators by Lyrica/End game. " +
+                                   "This is rewarded to people who have donate at least 100USD to gain instantly, " +
+                                   "or given by Lyrica herself (Honorary Title of Knighthood granted by Lyrica)",
+            [728462786736422935] = "Automated Role. Tier 3 Subscribers on Twitch " +
+                                   "(Your twitch must be linked on Discord " +
+                                   "so that you can automatically get the role from the bot)",
+            [730075825143021678] = "Reward Role. Won 5 tetris games on tetris streams.",
+            [737917005369442404] = "Moderators who have now stepped down from their role.",
+            [731807968940523560] = "People who are able to receive the super rare kiss from lola in the Blessing Game. " +
+                                   "(Sometimes Lyrica gives away the role)" + Environment.NewLine +
+                                   "(This is basically gacha channel)" + Environment.NewLine +
+                                   "(Best Gacha channel)",
+            [728610551378477137] = "Automated Role. People who boosted the server using nitro boost.",
+            [728462786736422932] = "Automated Role. Tier 1 Subscribers on Twitch " +
+                                   "(Similar to Bingo Winners. Your twitch account should be linked to discord " +
+                                   "so the bot can give you the role)",
+            [745594372644536480] = "It is a role rewarded to the major builders of " +
+                                   "monumental landmarks in the Minecraft Server",
+            [729248749968293920] = "A reward given to those who helped giving out ideas in the server, " +
+                                   "contributed emotes, and aided the server generally.",
+            [755409349039489033] = "A reward given to the people who helped out Poffi " +
+                                   "with listing campers before the new camping system.",
+            [741534040883986464] = "Liliana Vampaia’s role.",
+            [728676190952620133] = "The Halohalolive and Kalbolive group of Vtubers. " +
+                                   "Includes Kaheru, Arisa, Spica, " +
+                                   "YanchaGogo, Yuma Yamano, and Himeko Sae.",
+            [728679916169592923] = "The Hanamori group of Artists and Vtubers. " +
+                                   "Includes Ryuusei Nova, Asagiri Yua, Ichika Maia, " +
+                                   "Asahina Chie, Xiaochao, Akatora Chimon, and Seigi.",
+            [729873227639160882] = "For people who made fanart of Lyrica and have been featured on stream. " +
+                                   "(Formerly called Resident Drawers, the name Orocan is from a brand of a drawer)",
+            [748851133308600333] = "People who are in charge of managing the <#733311526424805467> channel. " +
+                                   "They are the chroniclers of the history of the server. ",
+            [740511093968863232] = "Hosts of the Unscuffed Podcast back in July. " +
+                                   "People who recapped on the contents of the <#733311526424805467> channel back in July",
+            [728468630387294269] = "Fellow VTubers.  People who use a Virtual character to do YouTube/Twitch",
+            [753414363569717348] = "Spuds.. Nagi-related role. (For context: Nagi is lola’s potato)",
 
-            [748849348170874972] = "",                                                                                                                // — Default Roles —
-            [728467669409464341] = "",                                                                                                                // Bots
-            [728857949564436551] = "People who are muted through warnings or manual commands. They are temporarily not able to chat/connect to vcs.", // Stunned ⚡⚡⚡
-            [728609118486528101] = "This is the role given to the people who accepted the rules. Name of the fans of Lyrica.",                        // Sinigang
-            [728903243035443251] = "Normal. This is the default amount.",                                                                             // ❤️️🧡💛💚
-            [728903246294548532] = "5 minutes mute.",                                                                                                 // ❤️️🧡💛🖤
-            [728903249129635902] = "12 hours mute.",                                                                                                  // ❤️️🧡🖤🖤
-            [728903250916409425] = "Kick + 24 hours mute when rejoining.",                                                                            // ❤️️🖤🖤🖤
-            [728903408790011914] = "Ban",                                                                                                             // 🖤🖤🖤🖤
+            [748849348170874972] = string.Empty, // — Default Roles —
+            [728467669409464341] = string.Empty, // Bots
+            [728857949564436551] = "People who are muted through warnings or manual commands. They are temporarily not able to chat/connect to vcs.",
+            [728609118486528101] = "This is the role given to the people who accepted the rules. Name of the fans of Lyrica.",
+            [728903243035443251] = "Normal. This is the default amount.",
+            [728903246294548532] = "5 minutes mute.",
+            [728903249129635902] = "12 hours mute.",
+            [728903250916409425] = "Kick + 24 hours mute when rejoining.",
+            [728903408790011914] = "Ban",
 
-            [748849597341761568] = "",                                                                                       // — Special Roles —
-            [741288494831239259] = "Members who participated in the 'Noli Me Tangere' reading stream. (Commemorative Role)", // 📚 Noli Reading Event
-            [749864996963483746] = "Members who joined the Heneral Luna Movie Night Last August 31st (Commemorative Role)",  // Heneral Luna Event
-            [728668857375522876] = "",                                                                                       // StreamVC Unlocked
-            [728462786736422933] = "",                                                                                       // Twitch Subscriber: Tier 1
-            [728462786736422934] = "",                                                                                       // Twitch Subscriber: Tier 2
-            [738736886532800522] = "",                                                                                       // Movie Banned
-            [761437714863882250] = "",                                                                                       // Streaming Banned
+            [748849597341761568] = string.Empty, // — Special Roles —
+            [762228685905854475] = "Role awarded to the current #1 person on the leaderboard in Tatsumaki.",
+            [741288494831239259] = "Members who participated in the 'Noli Me Tangere' reading stream. (Commemorative Role)",
+            [749864996963483746] = "Members who joined the Heneral Luna Movie Night Last August 31st (Commemorative Role)",
+            [728668857375522876] = string.Empty, // StreamVC Unlocked
+            [728462786736422933] = string.Empty, // Twitch Subscriber: Tier 1
+            [728462786736422934] = string.Empty, // Twitch Subscriber: Tier 2
+            [738736886532800522] = string.Empty, // Movie Banned
+            [761437714863882250] = string.Empty, // Streaming Banned
 
-            [748849488579264512] = "",                                                                                                                                  // — Self Assign —
-            [729608027883438091] = "A role for everyone that gets pinged when the stream schedule is available, or a stream is about to start. (Can be opted out of.)", // Lyrica Stream Pings
-            // [760710940727050270] = "", // Shannon Stream Pings
-            [760711148391366656] = "Pings made when a new stream schedule is released.", // Stream Schedule Ping
+            [748849488579264512] = string.Empty, // — Self Assign —
+            [729608027883438091] = "A role for everyone that gets pinged when the stream schedule is available, " +
+                                   "or a stream is about to start. (Can be opted out of.)",
+            [760710940727050270] = string.Empty, // Shannon Stream Pings
+            [760711148391366656] = "Pings made when a new stream schedule is released.",
 
-            [755409354177642536] = "",                                           // — Auto Roles —
-            [759257307648884746] = "Is given to the current singer in Karaoke.", // Current Singer 🎤
-            [755409355968348232] = "",                                           // VC Gen Access
-            [759938688309395497] = "",                                           // VC Karaoke Access
-            [759938896929882113] = "",                                           // VC Games Access
-            [728659065542148126] =
-                "This is the role that allows you to post media/files/links to chat channels. To unlock this role, you need 10K tatsu points to be able to post images and GIFs and links by simply chatting/being active on the server.", // Media Permission
-            [761437576283422721] = "Given at 50k tatsu points. Allows you to screenshare into the server.", // Streaming Permission
+            [755409354177642536] = string.Empty, // — Auto Roles —
+            [759257307648884746] = "Is given to the current singer in Karaoke.",
+            [755409355968348232] = string.Empty, // VC Gen Access
+            [759938688309395497] = string.Empty, // VC Karaoke Access
+            [759938896929882113] = string.Empty, // VC Games Access
+            [728659065542148126] = "This is the role that allows you to post media/files/links to chat channels. " +
+                                   "To unlock this role, you need 10K Tatsu points " +
+                                   "to be able to post images and GIFs and links " +
+                                   "by simply chatting/being active on the server.",
+            [761437576283422721] = "Given at 50k tatsu points. " +
+                                   "Allows you to screenshare into the server.",
             [728459950468104284] = "A role that everyone has. Self Explanatory." // @everyone
         };
 
@@ -298,8 +359,8 @@ namespace Lyrica.Bot.Modules
         }
 
         [RequireOwner]
-        [Command("update rule")]
-        public async Task UpdateRulesAsync(RulePart rulePart, ITextChannel? channel = null, ulong? messageId = null)
+        [Command("update part")]
+        public async Task UpdatePartAsync(RulePart rulePart, ITextChannel? channel = null, ulong? messageId = null, string? content = null)
         {
             channel ??= (ITextChannel) Context.Channel;
             var embed = rulePart switch
@@ -311,6 +372,9 @@ namespace Lyrica.Bot.Modules
                 RulePart.React        => GetReactEmbed(out _),
                 RulePart.ModMail      => GetModMailEmbed(),
                 RulePart.Warning      => GetWarningSystemEmbed(),
+                RulePart.Channel      => GetChannelInfo(),
+                RulePart.Role         => GetRoleInfo(),
+                RulePart.Social       => GetSocialInfo(),
                 _                     => throw new ArgumentOutOfRangeException(nameof(rulePart), rulePart, null)
             };
 
@@ -321,7 +385,11 @@ namespace Lyrica.Bot.Modules
             else
             {
                 var message = (IUserMessage) await channel.GetMessageAsync((ulong) messageId);
-                await message.ModifyAsync(m => m.Embed = embed.Build());
+                await message.ModifyAsync(m =>
+                {
+                    m.Embed = embed.Build();
+                    m.Content = content ?? m.Content;
+                });
             }
         }
 
@@ -531,11 +599,12 @@ namespace Lyrica.Bot.Modules
         {
             channel ??= (ITextChannel) Context.Channel;
 
-            await ReplyAsync(embed: ChannelInfo().Build());
-            await ReplyAsync(embed: RoleInfo().Build());
+            await channel.SendMessageAsync(embed: GetChannelInfo().Build());
+            await channel.SendMessageAsync(embed: GetRoleInfo().Build());
+            await channel.SendMessageAsync("**Permanent Invite**: https://discord.gg/lyrica", embed: GetSocialInfo().Build());
         }
 
-        private EmbedBuilder ChannelInfo()
+        private EmbedBuilder GetChannelInfo()
         {
             var categories = new ulong[]
             {
@@ -550,6 +619,7 @@ namespace Lyrica.Bot.Modules
             };
             var channels = new EmbedBuilder()
                 .WithTitle("Channel Information")
+                .WithColor(0x87CBFA)
                 .WithDescription("Here are the summary of the channels and what they are for.")
                 .WithImageUrl("https://chito.ge/96t1PmC.png?_raw=true")
                 .WithFooter("※ Last Updated")
@@ -578,8 +648,15 @@ namespace Lyrica.Bot.Modules
             return builder;
         }
 
-        private EmbedBuilder RoleInfo()
+        private EmbedBuilder GetRoleInfo()
         {
+            var roles = new EmbedBuilder()
+                .WithTitle("Role Information")
+                .WithColor(0x87CBFA)
+                .WithImageUrl("https://chito.ge/3fMPbTh.png?_raw=true")
+                .WithFooter("※ Last Updated")
+                .WithCurrentTimestamp();
+
             var roleDescriptions = RoleDescriptions
                 .Select((r, i) => new { Role = Context.Guild.GetRole(r.Key), Description = r.Value, Index = i })
                 .Where(r => !string.IsNullOrWhiteSpace(r.Description))
@@ -591,18 +668,31 @@ namespace Lyrica.Bot.Modules
                         .LastOrDefault(role => _roleNameRegex.IsMatch(role)))
                 .ToArray();
 
-            var roles = new EmbedBuilder()
-                .WithTitle("Role Information")
-                .WithImageUrl("https://chito.ge/3fMPbTh.png?_raw=true")
-                .WithFooter("※ Last Updated")
-                .WithCurrentTimestamp();
-
             foreach (var category in roleDescriptions)
             {
                 AddLinesIntoFields(roles, category.Key is null ? "\x200b" : $"【 {category.Key} 】", category, r => $"◈ **{r.Role.Mention}** {r.Description}");
             }
 
             return roles;
+        }
+
+        private EmbedBuilder GetSocialInfo()
+        {
+            var info = new EmbedBuilder()
+                .WithTitle("💮 【 Socials 】 💮")
+                .WithColor(_pink)
+                .WithImageUrl("https://chito.ge/5tJ9XvP.png?_raw=true")
+                .WithDescription(
+                    "◈ YouTube: **[Lyrica Ch.](https://youtube.com/c/LyricaCh)**" + Environment.NewLine +
+                    "◈ Twitch: **[lyrica_ch](https://twitch.tv/lyrica_ch)**" + Environment.NewLine +
+                    "◈ Discord: **[discord.gg/lyrica](https://discord.gg/lyrica)**" + Environment.NewLine +
+                    "◈ Twitter: **[@Lyrica_ch](https://twitter.com/Lyrica_ch)**" + Environment.NewLine +
+                    "◈ Marshmallow: **[lyrica_ch](https://marshmallow-qa.com/lyrica_ch)**")
+                .AddField("🌟 【 Tags/Names 】 🎨",
+                    "◈ Fans: **SiniGANG**" + Environment.NewLine +
+                    "◈ Art: **[#LyriGanda](https://twitter.com/search?q=LyriGanda)**");
+
+            return info;
         }
 
         private static EmbedBuilder AddLinesIntoFields<T>(EmbedBuilder builder,
@@ -624,28 +714,22 @@ namespace Lyrica.Bot.Modules
 
         private static IEnumerable<string> SplitLinesIntoChunks(IEnumerable<string> lines, int maxLength)
         {
-            var ret = new List<string>();
             var sb = new StringBuilder(0, maxLength);
-            var arr = lines.ToArray();
-            var index = 0;
-            do
+            var builders = new List<StringBuilder>();
+            foreach (var line in lines)
             {
-                if (sb.Length + Environment.NewLine.Length + arr[index].Length < maxLength)
+                if (sb.Length + Environment.NewLine.Length + line.Length > maxLength)
                 {
-                    sb.AppendLine(arr[index]);
-                }
-                else
-                {
-                    ret.Add(sb.ToString());
+                    builders.Add(sb);
                     sb = new StringBuilder(0, maxLength);
                 }
 
-                index++;
-            } while (index < arr.Length);
+                sb.AppendLine(line);
+            }
 
-            ret.Add(sb.ToString());
+            builders.Add(sb);
 
-            return ret;
+            return builders.Select(s => s.ToString());
         }
     }
 }
