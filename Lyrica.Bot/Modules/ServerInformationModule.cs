@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using Humanizer;
 
 namespace Lyrica.Bot.Modules
 {
@@ -27,6 +28,7 @@ namespace Lyrica.Bot.Modules
         private const string _serverAvatarUrl = "https://chito.ge/5cH9TCA.gif?_raw=true";
         private const int FieldMaxSize = 1024;
         private readonly Color _pink = new Color(247, 209, 211);
+        private readonly Regex _roleNameRegex = new Regex(@"^— .+? —$", RegexOptions.Compiled);
 
         private int RuleCount => MainRules.SelectMany(c => c.rules).Count();
 
@@ -42,7 +44,7 @@ namespace Lyrica.Bot.Modules
                     "Elitism, condescending, or insulting other people is dishonorable and insensitive. " +
                     "Respect others as you want others to respect you."),
 
-                (2, "Please be Respectful to Everyone.",
+                (2, "No Offensive Content.",
                     "No offensive messages, nicknames, usernames, or avatars. " +
                     "This includes but not limited to racial slurs, insults, and mockery." +
                     Environment.NewLine + Environment.NewLine +
@@ -130,7 +132,7 @@ namespace Lyrica.Bot.Modules
         {
             // Important
             [756037831616495626] = "The channel for the rule of the server, please read them if you don’t want trouble on the server. (You are old enough to be responsible so please follow them in moderation)",
-            [728465580331630604] = "Post suggestions for streams here.",
+            [728465580331630604] = "The main channel for announcements. This shows the main updates for the server and the community.",
 
             // Lyrica Ch.
             [728739356139061309] = "The main channel that notifies you on stream schedule and updates.",
@@ -376,7 +378,7 @@ namespace Lyrica.Bot.Modules
                 embed.AddField("\x200b", $"```diff\n- ୨୧ {category} ୨୧ -```");
                 foreach (var (ruleNo, title, description) in rules)
                 {
-                    embed.AddField($"#{ruleNo}. - {title}", description);
+                    embed.AddField($"#{ruleNo} 【 {title} 】", description);
                 }
             }
 
@@ -392,19 +394,19 @@ namespace Lyrica.Bot.Modules
                     "Here are the rules and regulations for voice channels. " +
                     "Read carefully. The rules in voice channels are more laid-back, " +
                     "and less stricter than text-channel rules.")
-                .AddField("1. - No ear-rape or bass boosted content.",
+                .AddField("#1 【 No ear-rape or bass boosted content. 】",
                     "Don't play music or sounds that are considered ear-rape " +
                     "or harming to other's hearing.")
-                .AddField("#2 - Be Mindful of others.",
+                .AddField("#2 【 Be Mindful of others. 】",
                     "Be respectful, don't start a fight in voice channels. " +
                     "Making inappropriate sounds or disturbing noises that may " +
                     "disrupt discussions or make other people uncomfortable is not allowed." +
                     Environment.NewLine + Environment.NewLine +
                     "Refrain from being annoying to users.")
-                .AddField("#3 - No Video.",
+                .AddField("#3 【 No Video. 】",
                     "Only streaming is allowed, " +
                     "do not use video of your face for your own safety.")
-                .AddField("#3 - Use the Appropriate Voice Channel.", "\x200b")
+                .AddField("#4 【 Use the Appropriate Voice Channel. 】", "\x200b")
                 .WithFooter(
                     "※ There may be some situations not covered by these rules " +
                     "or times where the rule may not fit the situation. " +
@@ -562,36 +564,6 @@ namespace Lyrica.Bot.Modules
             return channels;
         }
 
-        private EmbedBuilder RoleInfo()
-        {
-            var roleDescriptions = RoleDescriptions
-                .Select((r, i) => (Context.Guild.GetRole(r.Key), r.Value, i))
-                .GroupBy(r =>
-                    RoleDescriptions.Take(r.i).LastOrDefault(role =>
-                        Regex.IsMatch(Context.Guild.GetRole(role.Key).Name, @"^- .+? -$", RegexOptions.Compiled)))
-                .ToList();
-
-            var roles = new EmbedBuilder()
-                .WithTitle("Role Information")
-                .WithImageUrl("https://chito.ge/3fMPbTh.png?_raw=true")
-                .WithFooter("※ Last Updated")
-                .WithCurrentTimestamp();
-
-            foreach (var category in roleDescriptions)
-            {
-                var lines =
-                    SplitLinesIntoChunks(category.Select(r => $"{r.Item1.Mention} {r.Value}"), FieldMaxSize);
-
-                roles.AddField(Context.Guild.GetRole(category.Key.Key)?.Name ?? "\x200b", lines.First());
-                foreach (var line in lines.Skip(1))
-                {
-                    roles.AddField("\x200b", line);
-                }
-            }
-
-            return roles;
-        }
-
         private EmbedBuilder AddCategoryInformation(EmbedBuilder builder, SocketCategoryChannel category, params IChannel[] hiddenChannels)
         {
             var channels = category.Channels
@@ -601,13 +573,50 @@ namespace Lyrica.Bot.Modules
 
             if (!channels.Any())
                 return builder;
+            AddLinesIntoFields(builder, $"【 {category.Name.Transform(To.LowerCase, To.TitleCase)} 】", channels, c => $"◈ **<#{c.Id}>** {ChannelDescriptions[c.Id]}");
 
-            var lines = SplitLinesIntoChunks(channels.Select(c => $"<#{c.Id}> {ChannelDescriptions[c.Id]}"), FieldMaxSize).ToArray();
+            return builder;
+        }
 
-            builder.AddField(category.Name, lines.First());
-            foreach (var line in lines.Skip(1))
+        private EmbedBuilder RoleInfo()
+        {
+            var roleDescriptions = RoleDescriptions
+                .Select((r, i) => new { Role = Context.Guild.GetRole(r.Key), Description = r.Value, Index = i })
+                .Where(r => !string.IsNullOrWhiteSpace(r.Description))
+                .Where(r => !_roleNameRegex.IsMatch(r.Role.Name))
+                .GroupBy(r =>
+                    RoleDescriptions
+                        .Take(r.Index)
+                        .Select(role => Context.Guild.GetRole(role.Key).Name)
+                        .LastOrDefault(role => _roleNameRegex.IsMatch(role)))
+                .ToArray();
+
+            var roles = new EmbedBuilder()
+                .WithTitle("Role Information")
+                .WithImageUrl("https://chito.ge/3fMPbTh.png?_raw=true")
+                .WithFooter("※ Last Updated")
+                .WithCurrentTimestamp();
+
+            foreach (var category in roleDescriptions)
             {
-                builder.AddField("\x200b", line);
+                AddLinesIntoFields(roles, category.Key is null ? "\x200b" : $"【 {category.Key} 】", category, r => $"◈ **{r.Role.Mention}** {r.Description}");
+            }
+
+            return roles;
+        }
+
+        private static EmbedBuilder AddLinesIntoFields<T>(EmbedBuilder builder,
+            string title,
+            IEnumerable<T> lines, Func<T, string> lineSelector)
+        {
+            var splitLines = SplitLinesIntoChunks(lines.Select(lineSelector), FieldMaxSize).ToArray();
+            if (splitLines.Any())
+            {
+                builder.AddField(title, splitLines.First());
+                foreach (var line in splitLines.Skip(1))
+                {
+                    builder.AddField("\x200b", line);
+                }
             }
 
             return builder;
@@ -621,7 +630,7 @@ namespace Lyrica.Bot.Modules
             var index = 0;
             do
             {
-                if (sb.Length + arr[index].Length < maxLength)
+                if (sb.Length + Environment.NewLine.Length + arr[index].Length < maxLength)
                 {
                     sb.AppendLine(arr[index]);
                 }
