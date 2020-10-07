@@ -268,7 +268,9 @@ namespace Lyrica.Bot.Modules
 
                 foreach (var user in channel.Users
                     .Where(u => u.IsMuted))
+                {
                     await user.ModifyAsync(u => u.Mute = false);
+                }
             }
             else
             {
@@ -280,11 +282,15 @@ namespace Lyrica.Bot.Modules
 
                 foreach (var user in role.Members
                     .Where(m => m != currentSinger))
+                {
                     await user.RemoveRoleAsync(role);
+                }
 
                 foreach (var user in channel.Users
                     .Where(u => u != currentSinger && !u.IsSelfMuted && !u.IsMuted))
+                {
                     await user.ModifyAsync(u => u.Mute = true);
+                }
 
                 await channel
                     .AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
