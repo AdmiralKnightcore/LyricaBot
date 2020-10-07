@@ -30,14 +30,42 @@ namespace Lyrica.Bot.Modules
 
         private const string _serverAvatarUrl = "https://chito.ge/5cH9TCA.gif?_raw=true";
         private const int FieldMaxSize = 1024;
+
+        private static readonly (uint ruleNo, string title, string description)[] VoiceRules =
+        {
+            (13, "No ear-rape or bass boosted content.",
+                "Don't play music or sounds that are considered ear-rape " +
+                "or harming to other's hearing."),
+
+            (14, "Be Mindful of others.",
+                "Be respectful, don't start a fight in voice channels. " +
+                "Making inappropriate sounds or disturbing noises that may " +
+                "disrupt discussions or make other people uncomfortable is not allowed." +
+                Environment.NewLine + Environment.NewLine +
+                "Refrain from being annoying to users."),
+
+            (15, "No Video.",
+                "Only streaming is allowed, " +
+                "do not use video of your face for your own safety."),
+
+            (16, "Use the Appropriate Voice Channel.",
+                "Use the voice channel the topic you're doing fits in. " +
+                "If you're going to be playing games, then use the gaming-vc channels.")
+        };
+
         private readonly Color _pink = new Color(247, 209, 211);
         private readonly Regex _roleNameRegex = new Regex(@"^— .+? —$", RegexOptions.Compiled);
 
-        private int RuleCount => MainRules.SelectMany(c => c.rules).Count();
+        private IEnumerable<uint> MainRulesNumbers => MainRules
+            .SelectMany(c =>
+                c.rules.Select(r => r.ruleNo));
 
-        private static (string category, (int ruleNo, string title, string description)[] rules)[] MainRules { get; } =
+        private IEnumerable<uint> VoiceRulesNumbers => VoiceRules
+            .Select(r => r.ruleNo);
+
+        private static (string category, (uint ruleNo, string title, string description)[] rules)[] MainRules { get; } =
         {
-            ("Respect & Courtesy", new[]
+            ("Respect & Courtesy", rules: new (uint ruleNo, string title, string description)[]
             {
                 (1, "Please be Respectful to Everyone.",
                     "Do not make other members uncomfortable, " +
@@ -71,7 +99,7 @@ namespace Lyrica.Bot.Modules
                     "Refrain from prying into issues that are done already, " +
                     "otherwise you can talk about it with the mods if it’s something really important.")
             }),
-            ("Etiquette & Chat Discipline", new[]
+            ("Etiquette & Chat Discipline", new (uint ruleNo, string title, string description)[]
             {
                 (5, "No Spamming.",
                     "No spamming. This includes mention spams, character spams, emote spams and image spams. " +
@@ -98,7 +126,7 @@ namespace Lyrica.Bot.Modules
                     "The mods have authority to stop a topic based on their discretion, " +
                     "and the rules are general guidelines for you and the community to follow.")
             }),
-            ("Community", new[]
+            ("Community", new (uint ruleNo, string title, string description)[]
             {
                 (9, "Do not Unnecessarily Ping People.",
                     "Please respect people's time, as they can get really busy. " +
@@ -338,24 +366,44 @@ namespace Lyrica.Bot.Modules
         [Command("rule")]
         [Summary("Views that specific rule")]
         [Alias("rules")]
-        public Task ViewRuleAsync([Summary("A number 1-12")] uint ruleNo)
+        public Task ViewRuleAsync([Summary("A number corresponding to the rule")]
+            uint ruleNo)
         {
-            if (ruleNo < 1 || ruleNo > RuleCount)
-                return ReplyAsync($"There are only 1-{RuleCount} rules!");
+            var rules = MainRulesNumbers.Concat(VoiceRulesNumbers)
+                .OrderBy(c => c)
+                .ToArray();
 
-            var (category, (_, title, description)) = MainRules
-                .SelectMany(c => c.rules,
-                    (c, rule) =>
-                        (c.category, rule))
-                .Single(r => r.rule.ruleNo == ruleNo);
+            if (!rules.Contains(ruleNo))
+                return ReplyAsync($"There are only {rules.First()}-{rules.Last()} rules!");
 
+            if (MainRulesNumbers.Contains(ruleNo))
+            {
+                var (category, (_, title, description)) = MainRules
+                    .SelectMany(c => c.rules,
+                        (c, rule) =>
+                            (c.category, rule))
+                    .Single(r => r.rule.ruleNo == ruleNo);
+
+                return ReplyAsync(embed: GetRuleEmbed(ruleNo, category, title, description).Build());
+            }
+
+            if (VoiceRulesNumbers.Contains(ruleNo))
+            {
+                var (_, title, description) = VoiceRules.Single(r => r.ruleNo == ruleNo);
+                return ReplyAsync(embed: GetRuleEmbed(ruleNo, "Voice Rules & Regulations", title, description).Build());
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private static EmbedBuilder GetRuleEmbed(uint ruleNo, string category, string title, string description)
+        {
             var embed = new EmbedBuilder()
                 .WithColor(247, 209, 211)
                 .WithAuthor(category, _serverAvatarUrl)
-                .WithTitle(title)
+                .WithTitle($"#{ruleNo} 【 {title} 】")
                 .WithDescription(description);
-
-            return ReplyAsync(embed: embed.Build());
+            return embed;
         }
 
         [RequireOwner]
@@ -462,23 +510,16 @@ namespace Lyrica.Bot.Modules
                     "Here are the rules and regulations for voice channels. " +
                     "Read carefully. The rules in voice channels are more laid-back, " +
                     "and less stricter than text-channel rules.")
-                .AddField("#1 【 No ear-rape or bass boosted content. 】",
-                    "Don't play music or sounds that are considered ear-rape " +
-                    "or harming to other's hearing.")
-                .AddField("#2 【 Be Mindful of others. 】",
-                    "Be respectful, don't start a fight in voice channels. " +
-                    "Making inappropriate sounds or disturbing noises that may " +
-                    "disrupt discussions or make other people uncomfortable is not allowed." +
-                    Environment.NewLine + Environment.NewLine +
-                    "Refrain from being annoying to users.")
-                .AddField("#3 【 No Video. 】",
-                    "Only streaming is allowed, " +
-                    "do not use video of your face for your own safety.")
-                .AddField("#4 【 Use the Appropriate Voice Channel. 】", "\x200b")
                 .WithFooter(
                     "※ There may be some situations not covered by these rules " +
                     "or times where the rule may not fit the situation. " +
                     "If this happens the moderators are trusted to handle the situation appropriately.");
+
+            foreach (var (ruleNo, title, description) in VoiceRules)
+            {
+                voice.AddField($"#{ruleNo} 【 {title} 】", description);
+            }
+
             return voice;
         }
 
