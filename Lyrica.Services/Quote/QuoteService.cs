@@ -56,7 +56,7 @@ namespace Lyrica.Services.Quote
         {
             var embed = BuildQuoteEmbed(message, executingUser);
 
-            if (callback == null || embed == null) return;
+            if (callback is null || embed is null) return;
 
             await _autoRemoveMessageService.RegisterRemovableMessageAsync(executingUser, embed,
                 async e => await callback.Invoke(e));
@@ -65,7 +65,7 @@ namespace Lyrica.Services.Quote
         private bool TryAddImageAttachment(IMessage message, EmbedBuilder embed)
         {
             var firstAttachment = message.Attachments.FirstOrDefault();
-            if (firstAttachment == null || firstAttachment.Height == null)
+            if (firstAttachment is null || firstAttachment.Height is null)
                 return false;
 
             embed.WithImageUrl(firstAttachment.Url);
@@ -76,7 +76,7 @@ namespace Lyrica.Services.Quote
         private bool TryAddOtherAttachment(IMessage message, EmbedBuilder embed)
         {
             var firstAttachment = message.Attachments.FirstOrDefault();
-            if (firstAttachment == null) return false;
+            if (firstAttachment is null) return false;
 
             embed.AddField($"Attachment (Size: {new ByteSize(firstAttachment.Size)})", firstAttachment.Url);
 
@@ -115,14 +115,14 @@ namespace Lyrica.Services.Quote
                 .ToEmbedBuilder()
                 .AddField("Quoted by", $"{executingUser.Mention} from **{message.GetJumpUrlForEmbed()}**", true);
 
-            if (firstEmbed.Color == null) embed.Color = Color.DarkGrey;
+            if (firstEmbed.Color is null) embed.Color = Color.DarkGrey;
 
             return true;
         }
 
         private void AddActivity(IMessage message, EmbedBuilder embed)
         {
-            if (message.Activity == null) return;
+            if (message.Activity is null) return;
 
             embed
                 .AddField("Invite Type", message.Activity.Type)

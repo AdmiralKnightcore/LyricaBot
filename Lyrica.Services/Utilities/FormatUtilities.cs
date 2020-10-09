@@ -65,7 +65,7 @@ namespace Lyrica.Services.Utilities
             var lines = code.Split('\n');
             string indentLine = lines.SkipWhile(d => d.FirstOrDefault() != ' ').FirstOrDefault();
 
-            if (indentLine != null)
+            if (indentLine is not null)
             {
                 var indent = indentLine.LastIndexOf(' ') + 1;
 
@@ -99,11 +99,15 @@ namespace Lyrica.Services.Utilities
                 var parts = new HashSet<string>[singular.Key.Count];
 
                 for (var i = 0; i < parts.Length; i++)
+                {
                     parts[i] = new HashSet<string>();
+                }
 
                 foreach (var variation in singular)
                 foreach ((string part, var partIndex) in variation.AsIndexable())
+                {
                     parts[partIndex].Add(part);
+                }
 
                 withDistinctParts[singularIndex] = parts;
             }
@@ -115,6 +119,7 @@ namespace Lyrica.Services.Utilities
                 parenthesized[aliasIndex] = new string[alias.Length];
 
                 foreach (var (word, wordIndex) in alias.AsIndexable())
+                {
                     if (word.Count == 2)
                     {
                         var indexOfDifference = word.First()
@@ -132,6 +137,7 @@ namespace Lyrica.Services.Utilities
                     {
                         parenthesized[aliasIndex][wordIndex] = word.Single();
                     }
+                }
             }
 
             var formatted = parenthesized.Select(aliasParts => string.Join(" ", aliasParts)).ToArray();

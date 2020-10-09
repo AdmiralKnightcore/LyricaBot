@@ -76,10 +76,10 @@ namespace Lyrica.Services.AutoRemoveMessage
         public async Task RegisterRemovableMessageAsync(IUser[] user, EmbedBuilder embed,
             Func<EmbedBuilder, Task<IUserMessage>> callback)
         {
-            if (callback == null)
+            if (callback is null)
                 throw new ArgumentNullException(nameof(callback));
 
-            if (embed.Footer?.Text == null)
+            if (embed.Footer?.Text is null)
                 embed.WithFooter(_footerReactMessage);
             else if (!embed.Footer.Text.Contains(_footerReactMessage)) embed.Footer.Text += $" | {_footerReactMessage}";
 

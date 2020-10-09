@@ -33,7 +33,7 @@
 //        {
 //            foreach (var type in typeof(T).GetProperties())
 //            {
-//                if (type.GetValue(results) != null)
+//                if (type.GetValue(results) is not null)
 //                    continue;
 
 //                _ = Task.Run(async () =>

@@ -54,7 +54,7 @@ namespace Lyrica.Services.Interactive
             if (!isRequired)
                 embed.WithFooter($"Reply '{Optional.SkipString}' if you don't need this.");
 
-            if (message == null)
+            if (message is null)
                 return await ReplyAsync(embed: embed.Build());
 
             await message.ModifyAsync(msg => msg.Embed = embed.Build());

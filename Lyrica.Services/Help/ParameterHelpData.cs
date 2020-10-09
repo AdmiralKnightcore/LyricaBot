@@ -44,7 +44,7 @@ namespace Lyrica.Services.Help
             var options = parameter.Type switch
             {
                 var t when t.IsEnum => FromEnum(t.GetEnumValues()),
-                var t when t.GetAttribute<NamedArgumentTypeAttribute>() != null =>
+                var t when t.GetAttribute<NamedArgumentTypeAttribute>() is not null =>
                     FromNamedArgumentInfo(parameter.Type),
                 _ => null
             };

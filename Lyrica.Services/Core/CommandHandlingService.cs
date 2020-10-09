@@ -49,7 +49,7 @@ namespace Lyrica.Services.Core
 
             var author = notification.Message.Author;
             var user = await _db.Users.FindAsync(author.Id);
-            if (user == null)
+            if (user is null)
             {
                 user = new User((IGuildUser) author);
                 await _db.Users.AddAsync(user, cancellationToken);

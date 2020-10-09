@@ -57,7 +57,7 @@ namespace Lyrica.Services.Interactive
                     if (!prompt.IsRequired)
                         continue;
 
-                    if (ErrorMessage != null)
+                    if (ErrorMessage is not null)
                         await Module.ModifyOrSendMessage(ErrorMessage ?? "You did not respond in time.", message,
                             color: Color.Red);
 
@@ -65,9 +65,9 @@ namespace Lyrica.Services.Interactive
                 }
 
                 object response = result.response.Content;
-                if (prompt.TypeReader != null)
+                if (prompt.TypeReader is not null)
                     response = await prompt.TypeReader.ReadAsync(Context, response.ToString(), Services);
-                else if (TypeReader != null)
+                else if (TypeReader is not null)
                     response = await TypeReader.ReadAsync(Context, response.ToString(), Services);
 
                 var promptResult = new PromptResult(prompt.Question, response);

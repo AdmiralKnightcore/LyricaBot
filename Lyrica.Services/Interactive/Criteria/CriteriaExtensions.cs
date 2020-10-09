@@ -15,10 +15,10 @@ namespace Lyrica.Services.Interactive.Criteria
         {
             var criteria = new List<ICriterion<T>>();
 
-            if (promptCriteria.Criteria != null)
+            if (promptCriteria.Criteria is not null)
                 criteria.AddRange(promptCriteria.Criteria);
 
-            if (promptCriteria.TypeReader != null)
+            if (promptCriteria.TypeReader is not null)
                 criteria.Add(promptCriteria.TypeReader.AsCriterion<T>());
 
             return criteria;

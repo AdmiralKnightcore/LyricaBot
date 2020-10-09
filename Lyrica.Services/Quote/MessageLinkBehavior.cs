@@ -89,7 +89,7 @@ namespace Lyrica.Services.Quote
 
                             var msg = await messageChannel.GetMessageAsync(messageId, cacheMode);
 
-                            if (msg == null) return;
+                            if (msg is null) return;
 
                             var success = await SendQuoteEmbedAsync(msg, guildUser, userMessage.Channel);
                             if (success

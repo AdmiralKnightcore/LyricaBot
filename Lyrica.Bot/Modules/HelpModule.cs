@@ -126,7 +126,7 @@ namespace Lyrica.Bot.Modules
             if (queries.HasFlag(HelpDataType.Command))
             {
                 var byCommand = _commandHelpService.GetCommandHelpData(query);
-                if (byCommand != null)
+                if (byCommand is not null)
                 {
                     embed = GetEmbedForCommand(byCommand);
                     return true;
@@ -136,7 +136,7 @@ namespace Lyrica.Bot.Modules
             if (queries.HasFlag(HelpDataType.Module))
             {
                 var byModule = _commandHelpService.GetModuleHelpData(query);
-                if (byModule != null)
+                if (byModule is not null)
                 {
                     embed = GetEmbedForModule(byModule);
                     return true;
@@ -153,7 +153,9 @@ namespace Lyrica.Bot.Modules
                 .WithDescription(module.Summary);
 
             foreach (var command in module.Commands)
+            {
                 AddCommandFields(embedBuilder, command);
+            }
 
             return embedBuilder;
         }
@@ -186,7 +188,9 @@ namespace Lyrica.Bot.Modules
             stringBuilder.AppendLine(Format.Bold("Aliases:"));
 
             foreach (var alias in aliases.CollapsePlurals())
+            {
                 stringBuilder.AppendLine($"• {alias}");
+            }
 
             return stringBuilder;
         }
@@ -195,7 +199,7 @@ namespace Lyrica.Bot.Modules
             StringBuilder stringBuilder,
             IReadOnlyCollection<ParameterHelpData>? parameters)
         {
-            if (parameters == null || parameters.Count == 0)
+            if (parameters is null || parameters.Count == 0)
                 return stringBuilder;
 
             stringBuilder.AppendLine(Format.Bold("Parameters:"));
@@ -204,11 +208,13 @@ namespace Lyrica.Bot.Modules
             {
                 AppendSummary(stringBuilder, parameter);
 
-                if (parameter.Options == null)
+                if (parameter.Options is null)
                     continue;
 
                 foreach (var option in parameter.Options)
+                {
                     AppendSummary(stringBuilder, option);
+                }
             }
 
             return stringBuilder;
@@ -244,7 +250,7 @@ namespace Lyrica.Bot.Modules
 
         private string GetParamName(ParameterHelpData parameter)
         {
-            if (parameter.Options != null)
+            if (parameter.Options is not null)
             {
                 var parameters = parameter.Options.Select(p => p.Name);
                 return string.Join("|", parameters).SurroundNullability(parameter.IsOptional);

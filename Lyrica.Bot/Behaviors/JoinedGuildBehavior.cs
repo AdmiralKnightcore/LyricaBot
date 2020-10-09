@@ -19,7 +19,7 @@ namespace Lyrica.Bot.Behaviors
         public async Task Handle(JoinedGuildNotification notification, CancellationToken cancellationToken)
         {
             var guild = await _db.Guilds.FindAsync(notification.Guild.Id);
-            if (guild == null)
+            if (guild is null)
             {
                 guild = new Guild
                 {

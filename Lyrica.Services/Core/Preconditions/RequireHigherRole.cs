@@ -31,7 +31,7 @@ namespace Lyrica.Services.Core.Preconditions
                 _                 => throw new ArgumentOutOfRangeException()
             };
 
-            if (targetUser == null)
+            if (targetUser is null)
                 return PreconditionResult.FromError("User not found.");
 
             if (guildUser.Hierarchy < targetUser.Hierarchy)

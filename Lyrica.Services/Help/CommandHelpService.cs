@@ -61,23 +61,23 @@ namespace Lyrica.Services.Help
 
             var byModuleNameExact =
                 allHelpData.FirstOrDefault(x => x.Name.Equals(query, StringComparison.OrdinalIgnoreCase));
-            if (byModuleNameExact != null)
+            if (byModuleNameExact is not null)
                 return byModuleNameExact;
 
             var byTagsExact = allHelpData.FirstOrDefault(
                 x => x.HelpTags.Any(y => y.Equals(query, StringComparison.OrdinalIgnoreCase)));
-            if (byTagsExact != null)
+            if (byTagsExact is not null)
                 return byTagsExact;
 
             var byNameContains =
                 allHelpData.FirstOrDefault(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
-            if (byNameContains != null)
+            if (byNameContains is not null)
                 return byNameContains;
 
             var byTagsContains = allHelpData.FirstOrDefault(
                 x => x.HelpTags.Any(y => y.Contains(query, StringComparison.OrdinalIgnoreCase)));
 
-            if (byTagsContains != null)
+            if (byTagsContains is not null)
                 return byTagsContains;
 
             return null;
@@ -90,12 +90,12 @@ namespace Lyrica.Services.Help
 
             var byModuleNameExact = allHelpData.FirstOrDefault(
                 x => x.Aliases.Any(y => y.Equals(query, StringComparison.OrdinalIgnoreCase)));
-            if (byModuleNameExact != null)
+            if (byModuleNameExact is not null)
                 return byModuleNameExact;
 
             var byNameContains = allHelpData.FirstOrDefault(
                 x => x.Aliases.Any(y => y.Contains(query, StringComparison.OrdinalIgnoreCase)));
-            if (byNameContains != null)
+            if (byNameContains is not null)
                 return byNameContains;
 
             return null;
