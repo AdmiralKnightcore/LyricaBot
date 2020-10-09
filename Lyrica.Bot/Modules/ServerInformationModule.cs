@@ -1,13 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Humanizer;
+using Lyrica.Services.Utilities;
 
 namespace Lyrica.Bot.Modules
 {
@@ -29,29 +29,6 @@ namespace Lyrica.Bot.Modules
         }
 
         private const string _serverAvatarUrl = "https://chito.ge/5cH9TCA.gif?_raw=true";
-        private const int FieldMaxSize = 1024;
-
-        private static readonly (uint ruleNo, string title, string description)[] VoiceRules =
-        {
-            (13, "No ear-rape or bass boosted content.",
-                "Don't play music or sounds that are considered ear-rape " +
-                "or harming to other's hearing."),
-
-            (14, "Be Mindful of others.",
-                "Be respectful, don't start a fight in voice channels. " +
-                "Making inappropriate sounds or disturbing noises that may " +
-                "disrupt discussions or make other people uncomfortable is not allowed." +
-                Environment.NewLine + Environment.NewLine +
-                "Refrain from being annoying to users."),
-
-            (15, "No Video.",
-                "Only streaming is allowed, " +
-                "do not use video of your face for your own safety."),
-
-            (16, "Use the Appropriate Voice Channel.",
-                "Use the voice channel the topic you're doing fits in. " +
-                "If you're going to be playing games, then use the gaming-vc channels.")
-        };
 
         private readonly Color _pink = new Color(247, 209, 211);
         private readonly Regex _roleNameRegex = new Regex(@"^— .+? —$", RegexOptions.Compiled);
@@ -157,6 +134,29 @@ namespace Lyrica.Bot.Modules
                     "Because this community is in Discord, " +
                     "you are required to follow Discord's Terms of Service.")
             })
+        };
+
+        // ReSharper disable once FieldCanBeMadeReadOnly.Local
+        private static (uint ruleNo, string title, string description)[] VoiceRules =
+        {
+            (13, "No ear-rape or bass boosted content.",
+                "Don't play music or sounds that are considered ear-rape " +
+                "or harming to other's hearing."),
+
+            (14, "Be Mindful of others.",
+                "Be respectful, don't start a fight in voice channels. " +
+                "Making inappropriate sounds or disturbing noises that may " +
+                "disrupt discussions or make other people uncomfortable is not allowed." +
+                Environment.NewLine + Environment.NewLine +
+                "Refrain from being annoying to users."),
+
+            (15, "No Video.",
+                "Only streaming is allowed, " +
+                "do not use video of your face for your own safety."),
+
+            (16, "Use the Appropriate Voice Channel.",
+                "Use the voice channel the topic you're doing fits in. " +
+                "If you're going to be playing games, then use the gaming-vc channels.")
         };
 
         private static Dictionary<ulong, string> ChannelDescriptions { get; } = new Dictionary<ulong, string>
@@ -684,7 +684,7 @@ namespace Lyrica.Bot.Modules
 
             if (!channels.Any())
                 return builder;
-            AddLinesIntoFields(builder, $"【 {category.Name.Transform(To.LowerCase, To.TitleCase)} 】", channels, c => $"◈ **<#{c.Id}>** {ChannelDescriptions[c.Id]}");
+            builder.AddLinesIntoFields($"【 {category.Name.Transform(To.LowerCase, To.TitleCase)} 】", channels, c => $"◈ **<#{c.Id}>** {ChannelDescriptions[c.Id]}");
 
             return builder;
         }
@@ -711,7 +711,7 @@ namespace Lyrica.Bot.Modules
 
             foreach (var category in roleDescriptions)
             {
-                AddLinesIntoFields(roles, category.Key is null ? "\x200b" : $"【 {category.Key} 】", category, r => $"◈ **{r.Role.Mention}** {r.Description}");
+                roles.AddLinesIntoFields(category.Key is null ? "\x200b" : $"【 {category.Key} 】", category, r => $"◈ **{r.Role.Mention}** {r.Description}");
             }
 
             return roles;
@@ -734,43 +734,6 @@ namespace Lyrica.Bot.Modules
                     "◈ Art: **[#LyriGanda](https://twitter.com/search?q=LyriGanda)**");
 
             return info;
-        }
-
-        private static EmbedBuilder AddLinesIntoFields<T>(EmbedBuilder builder,
-            string title,
-            IEnumerable<T> lines, Func<T, string> lineSelector)
-        {
-            var splitLines = SplitLinesIntoChunks(lines.Select(lineSelector), FieldMaxSize).ToArray();
-            if (splitLines.Any())
-            {
-                builder.AddField(title, splitLines.First());
-                foreach (var line in splitLines.Skip(1))
-                {
-                    builder.AddField("\x200b", line);
-                }
-            }
-
-            return builder;
-        }
-
-        private static IEnumerable<string> SplitLinesIntoChunks(IEnumerable<string> lines, int maxLength)
-        {
-            var sb = new StringBuilder(0, maxLength);
-            var builders = new List<StringBuilder>();
-            foreach (var line in lines)
-            {
-                if (sb.Length + Environment.NewLine.Length + line.Length > maxLength)
-                {
-                    builders.Add(sb);
-                    sb = new StringBuilder(0, maxLength);
-                }
-
-                sb.AppendLine(line);
-            }
-
-            builders.Add(sb);
-
-            return builders.Select(s => s.ToString());
         }
     }
 }

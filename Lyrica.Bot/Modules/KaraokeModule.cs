@@ -5,10 +5,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
+using Lyrica.Data;
 using Lyrica.Data.Karaoke;
 using Lyrica.Services.Core.Messages;
 using Lyrica.Services.Utilities;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace Lyrica.Bot.Modules
@@ -19,71 +22,87 @@ namespace Lyrica.Bot.Modules
         ModuleBase<SocketCommandContext>,
         INotificationHandler<UserVoiceStateNotification>
     {
-        private const ulong KaraokeVc = 746265675797889025;
-        private const ulong SingingRole = 759257307648884746;
+        private static readonly Dictionary<IGuild, CancellationTokenSource> IntermissionTokens =
+            new Dictionary<IGuild, CancellationTokenSource>();
 
-        private static readonly List<IUser> VoteSkippedUsers = new List<IUser>();
-        private static readonly KaraokeQueue Queue = new KaraokeQueue();
-        private static IUserMessage? _queueMessage;
-        private static bool _intermission = true;
-        private static CancellationTokenSource _intermissionToken = new CancellationTokenSource();
+        private static readonly Dictionary<IUser, string?> Nicknames = new Dictionary<IUser, string?>();
 
         private readonly CommandService _commands;
         private readonly ILogger<KaraokeModule> _log;
         private readonly IServiceProvider _services;
+        private readonly LyricaContext _db;
 
         public KaraokeModule(
+            ILogger<KaraokeModule> log,
             IServiceProvider services,
             CommandService commands,
-            ILogger<KaraokeModule> log)
+            LyricaContext db)
         {
-            _commands = commands;
-            _services = services;
             _log = log;
+            _services = services;
+            _commands = commands;
+            _db = db;
+        }
+
+        private async Task<KaraokeSetting> GetKaraokeAsync(ulong guildId)
+        {
+            var guild = await _db.Guilds
+                .Include(g => g.Karaoke)
+                .ThenInclude(k => k.Queue)
+                .ThenInclude(e => e.User)
+                .FirstAsync(g => g.Id == guildId);
+
+            return guild.Karaoke!;
         }
 
         public async Task Handle(
             UserVoiceStateNotification notification,
             CancellationToken cancellationToken)
         {
+            if (notification.New.VoiceChannel is null && notification.Old?.VoiceChannel is null)
+                return;
+
+            var karaoke = await GetKaraokeAsync((ulong) (notification.New.VoiceChannel?.Guild.Id ?? notification.Old?.VoiceChannel.Guild.Id)!);
             var user = (IGuildUser) notification.User;
-            if (notification.Old?.VoiceChannel?.Id == KaraokeVc &&
-                notification.New.VoiceChannel?.Id != KaraokeVc)
+            if (notification.Old?.VoiceChannel?.Id == karaoke.KaraokeVc &&
+                notification.New.VoiceChannel?.Id != karaoke.KaraokeVc)
             {
                 if (user.IsMuted)
                     await user.ModifyAsync(u => u.Mute = false);
                 return;
             }
 
-            if (notification.New.VoiceChannel?.Id != KaraokeVc) return;
+            if (notification.New.VoiceChannel?.Id != karaoke.KaraokeVc) return;
 
-            if (Queue.CurrentSinger?.User.Id == user.Id)
+            if (karaoke.CurrentSinger?.User.Id == user.Id)
             {
-                if (!user.HasRole(SingingRole))
+                if (!user.HasRole(karaoke.SingingRole))
                 {
                     _log.LogWarning("Current singer {0} had no Singing Role. It was given to {1}",
-                        Queue.CurrentSinger?.User,
+                        karaoke.CurrentSinger?.User,
                         notification.User);
                     var guild = notification.New.VoiceChannel.Guild;
-                    var role = guild.GetRole(SingingRole);
+                    var role = guild.GetRole(karaoke.SingingRole);
                     await user.AddRoleAsync(role);
                 }
 
                 if (user.IsMuted)
                 {
                     _log.LogWarning("Current singer {0} was muted. Unmuting {1}",
-                        Queue.CurrentSinger?.User,
+                        karaoke.CurrentSinger?.User,
                         notification.User);
                     await user.ModifyAsync(u => u.Mute = false);
                 }
+
+                if (!user.Nickname?.StartsWith("!") ?? true) await HoistUserAsync((SocketGuildUser) user);
             }
 
             if (!notification.New.IsSelfMuted && !notification.New.IsMuted)
             {
-                if (!_intermission && notification.User.Id != Queue.CurrentSinger?.User.Id)
+                if (!karaoke.Intermission && notification.User.Id != karaoke.CurrentSinger?.User.Id)
                 {
                     _log.LogDebug("Current singer is {0} so {1} was muted",
-                        Queue.CurrentSinger?.User,
+                        karaoke.CurrentSinger?.User,
                         notification.User);
                     await user.ModifyAsync(u => u.Mute = true);
                 }
@@ -110,8 +129,11 @@ namespace Lyrica.Bot.Modules
         [RequireUserPermission(ChannelPermission.ManageMessages)]
         public async Task ResetQueueAsync()
         {
-            Queue.Queue.Clear();
-            await UpdateVcRolesAsync();
+            var karaoke = await GetKaraokeAsync(Context.Guild.Id);
+            karaoke.Queue.Clear();
+            await _db.SaveChangesAsync();
+
+            await PauseKaraokeAsync();
             await ReplyAsync("Queue has been reset!");
         }
 
@@ -120,11 +142,11 @@ namespace Lyrica.Bot.Modules
         [RequireUserPermission(ChannelPermission.ManageMessages)]
         public async Task RefreshQueueAsync()
         {
+            var karaoke = await GetKaraokeAsync(Context.Guild.Id);
             await ReplyAsync("Refreshing Karaoke permissions");
-            await UpdateVcRolesAsync(true);
-            await UpdateVcRolesAsync();
-            _log.LogDebug("Queue {0}", Queue.Queue);
-            _log.LogDebug("Current Singer {0}", Queue.CurrentSinger?.User);
+            await PauseKaraokeAsync();
+            _log.LogDebug("Queue {0}", karaoke.Queue);
+            _log.LogDebug("Current Singer {0}", karaoke.CurrentSinger?.User);
             await ReplyAsync("Queue and permissions has been reset!");
             await UpdateOrSendQueue();
         }
@@ -137,61 +159,123 @@ namespace Lyrica.Bot.Modules
         [Command("next", true)]
         [Alias("finish", "finished", "done")]
         [Summary("Goes to the next user in the queue when you finished singing")]
-        public Task NextUserAsync()
+        public async Task NextUserAsync()
         {
-            if (_intermission)
-                return Task.CompletedTask;
+            var karaoke = await GetKaraokeAsync(Context.Guild.Id);
 
-            return Context.User.Id == Queue.CurrentSinger?.User.Id
-                ? ShowNextUserAsync(Context.User)
-                : ReplyAsync("You are not the current singer!");
+            if (Context.User.Id == karaoke.CurrentSinger?.User.Id)
+                await ShowNextUserAsync(Context.User);
+            else
+                await ReplyAsync("You are not the current singer!");
         }
 
         [Command("voteskip", true)]
         [Summary("Vote skips the current singer")]
-        public Task VoteSkipUserAsync()
+        public async Task VoteSkipUserAsync()
         {
-            if (VoteSkippedUsers.Contains(Context.User))
-                return ReplyAsync("You already vote skipped!");
+            var user = await _db.Users.FindAsync(Context.User.Id);
+            var guild = await _db.Guilds
+                .Include(g => g.Karaoke)
+                .ThenInclude(k => k.VoteSkippedUsers)
+                .FirstOrDefaultAsync(g => g.Id == Context.Guild.Id);
 
-            if (!Context.Guild.GetVoiceChannel(KaraokeVc).Users.Contains(Context.User))
-                return ReplyAsync("You're not in the Karaoke VC");
+            if (guild?.Karaoke is null || user is null)
+                return;
 
-            VoteSkippedUsers.Add(Context.User);
-
-            var channel = Context.Guild.GetVoiceChannel(KaraokeVc);
-            var threshold = channel.Users.Count / 2;
-            if (VoteSkippedUsers.Count < threshold)
-                return ReplyAsync($"{Context.User} voted to skip! ({VoteSkippedUsers.Count}/{threshold})");
-            VoteSkippedUsers.Clear();
-            return ShowNextUserAsync();
-        }
-
-        private async Task ShowNextUserAsync(IUser? user = null)
-        {
-            var last = Queue.CurrentSinger;
-            var next = Queue.NextUp.FirstOrDefault();
-            if (last != null && next != null)
+            var karaoke = guild.Karaoke;
+            if (karaoke.VoteSkippedUsers.Contains(user))
             {
-                var message = await ReplyAsync(
-                    $"{last.User} just finished singing {GetSong(last)}! Everyone can now speak for 30 seconds.\n" +
-                    $"The next user to sing is {next.User}~ {GetSong(next)}");
-                await message.AddReactionAsync(new Emoji("👏"));
-                await UpdateVcRolesAsync(true);
-                await Task.Delay(TimeSpan.FromSeconds(30));
-            }
-
-            Queue.NextSinger(user);
-            VoteSkippedUsers.Clear();
-
-            await UpdateVcRolesAsync();
-            if (Queue.CurrentSinger is null)
-            {
-                await ReplyAsync("The queue is now empty! Everyone can now speak.");
+                await ReplyAsync("You already vote skipped!");
                 return;
             }
 
-            await UpdateOrSendQueue(last);
+            if (!Context.Guild.GetVoiceChannel(karaoke.KaraokeVc).Users.Contains(Context.User))
+            {
+                await ReplyAsync("You're not in the Karaoke VC");
+                return;
+            }
+
+            karaoke.VoteSkippedUsers.Add(user);
+            await _db.SaveChangesAsync();
+
+            var channel = Context.Guild.GetVoiceChannel(karaoke.KaraokeVc);
+            var threshold = channel.Users.Count / 2;
+            if (karaoke.VoteSkippedUsers.Count < threshold)
+            {
+                await ReplyAsync($"{Context.User} voted to skip! ({karaoke.VoteSkippedUsers.Count}/{threshold})");
+            }
+            else
+            {
+                karaoke.VoteSkippedUsers.Clear();
+                await _db.SaveChangesAsync();
+                await ShowNextUserAsync();
+            }
+        }
+
+        [Command("pause", true)]
+        [Summary("Pauses the Karaoke")]
+        [RequireUserPermission(ChannelPermission.ManageMessages)]
+        public async Task PauseKaraokeAsync(bool announce = true)
+        {
+            var token = ResetToken();
+            var karaoke = await GetKaraokeAsync(Context.Guild.Id);
+            karaoke.Intermission = true;
+            await _db.SaveChangesAsync(token);
+
+            var channel = Context.Guild.GetVoiceChannel(karaoke.KaraokeVc);
+            await channel
+                .AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
+                    new OverwritePermissions(useVoiceActivation: PermValue.Inherit));
+
+            await channel.ModifyAsync(c => c.Bitrate = 8000);
+
+            foreach (var user in channel.Users
+                .Where(u => u.IsMuted))
+            {
+                await user.ModifyAsync(u => u.Mute = false);
+                if (Nicknames.TryGetValue(user, out var nickname))
+                    await user.ModifyAsync(u => u.Nickname = nickname);
+            }
+
+            if (announce)
+                await ReplyAsync("The Karaoke has been paused!");
+        }
+
+        [Command("start", true)]
+        [Summary("Starts the Karaoke")]
+        [RequireUserPermission(ChannelPermission.ManageMessages)]
+        public async Task StartKaraokeAsync()
+        {
+            var token = ResetToken();
+            var karaoke = await GetKaraokeAsync(Context.Guild.Id);
+
+            var channel = Context.Guild.GetVoiceChannel(karaoke.KaraokeVc);
+            var role = Context.Guild.GetRole(karaoke.SingingRole);
+
+            var currentSinger = Context.Guild.GetUser(karaoke.CurrentSinger!.User.Id);
+            if (!currentSinger.HasRole(role)) await currentSinger.AddRoleAsync(role);
+
+            foreach (var user in role.Members
+                .Where(m => m != currentSinger))
+            {
+                await user.RemoveRoleAsync(role);
+            }
+
+            await channel
+                .AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
+                    new OverwritePermissions(useVoiceActivation: PermValue.Deny));
+            await channel.ModifyAsync(c => c.Bitrate = 64000);
+
+            foreach (var user in channel.Users
+                .Where(u => u != currentSinger && !u.IsSelfMuted && !u.IsMuted))
+            {
+                await user.ModifyAsync(u => u.Mute = true);
+            }
+
+            karaoke.Intermission = false;
+            await _db.SaveChangesAsync(token);
+
+            await UpdateOrSendQueue(mention: true);
         }
 
         [Command("add")]
@@ -199,36 +283,39 @@ namespace Lyrica.Bot.Modules
         public async Task AddUserAsync([Remainder] [Summary("The title of the song you will sing")]
             string? song = null)
         {
-            if (Context.User.Id == Queue.CurrentSinger?.User.Id)
+            var karaoke = await GetKaraokeAsync(Context.Guild.Id);
+            if (Context.User.Id == karaoke.CurrentSinger?.User.Id)
             {
-                if (_intermission)
+                if (karaoke.Intermission)
                     return;
+
                 await ShowNextUserAsync(Context.User);
             }
 
-            if (Queue.HasUser(Context.User))
+            if (karaoke.HasUser(Context.User))
             {
                 await ReplyAsync($"{Context.User}, you are already in the queue!");
                 return;
             }
 
-            Queue.Add(Context.User, song);
+            var user = await _db.Users.FindAsync(Context.User.Id);
+            karaoke.Add(user, song);
+
+            await _db.SaveChangesAsync();
             await ReplyAsync($"{Context.User.Mention}, you have been added to the queue.");
 
-            if (Queue.Queue.Count == 1)
+            if (karaoke.Queue.Count == 1)
             {
+                var token = ResetToken();
                 await ReplyAsync("A new queue has started! Karaoke will begin in 30 seconds!");
-                await UpdateVcRolesAsync(true);
-                await Task.Delay(TimeSpan.FromSeconds(30), _intermissionToken.Token);
-                if (_intermissionToken.IsCancellationRequested)
+                await Task.Delay(TimeSpan.FromSeconds(30), token);
+                if (token.IsCancellationRequested)
                 {
                     _log.LogInformation("The current singer cancelled their start of the queue.");
-                    _intermissionToken = new CancellationTokenSource();
+                    return;
                 }
 
-                await ReplyAsync(
-                    $"{Queue.CurrentSinger!.User.Mention}, it's now your turn to sing! {GetSong(Queue.CurrentSinger)}");
-                await UpdateVcRolesAsync();
+                await StartKaraokeAsync();
             }
         }
 
@@ -237,98 +324,140 @@ namespace Lyrica.Bot.Modules
         [RequireUserPermission(ChannelPermission.ManageMessages)]
         public async Task ForceAdd(IGuildUser user, int? position = null, [Remainder] string? song = null)
         {
-            var entry = new KaraokeEntry(user, song);
-            Queue.Queue.Insert(position ?? 0, entry);
+            var karaoke = await GetKaraokeAsync(Context.Guild.Id);
+            var dbUser = await _db.Users.FindAsync(Context.User.Id);
+            var entry = new KaraokeEntry(dbUser, song);
+            karaoke.Queue.Insert(position ?? 0, entry);
+        }
+
+        [Priority(10)]
+        [Command("force remove")]
+        [RequireUserPermission(ChannelPermission.ManageMessages)]
+        public async Task ForceRemove(int position)
+        {
+            var karaoke = await GetKaraokeAsync(Context.Guild.Id);
+            karaoke.Queue.RemoveAt(position);
         }
 
         [Command("remove", true)]
         [Summary("Remove yourself from the Queue")]
-        public Task RemoveUserAsync()
+        public async Task RemoveUserAsync()
         {
-            if (!Queue.HasUser(Context.User))
-                return ReplyAsync("You are not in the queue!");
+            var karaoke = await GetKaraokeAsync(Context.Guild.Id);
+            if (!karaoke.HasUser(Context.User))
+            {
+                await ReplyAsync("You are not in the queue!");
+                return;
+            }
 
-            if (Queue.CurrentSinger?.User.Id == Context.User.Id) return ShowNextUserAsync();
+            if (karaoke.CurrentSinger?.User.Id == Context.User.Id)
+            {
+                await ShowNextUserAsync();
+                return;
+            }
 
-            Queue.Remove(Context.User);
-            return ReplyAsync($"{Context.User.Mention} You were removed from the queue.");
+            karaoke.Remove(Context.User);
+            await _db.SaveChangesAsync();
+            await ReplyAsync($"{Context.User.Mention} You were removed from the queue.");
         }
 
-        private string GetSong(KaraokeEntry entry) => $"**【 {entry.Song ?? "Secret"} 】**";
-
-        private async Task UpdateVcRolesAsync(bool? intermission = null)
+        private CancellationToken ResetToken()
         {
-            var channel = Context.Guild.GetVoiceChannel(KaraokeVc);
-            if (intermission == true || Queue.CurrentSinger is null)
-            {
-                _intermission = true;
-                await channel
-                    .AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
-                        new OverwritePermissions(useVoiceActivation: PermValue.Inherit));
+            IntermissionTokens.TryGetValue(Context.Guild, out var token);
+            token?.Cancel();
+            token = IntermissionTokens[Context.Guild] = new CancellationTokenSource();
+            return token.Token;
+        }
 
-                foreach (var user in channel.Users
-                    .Where(u => u.IsMuted))
-                {
-                    await user.ModifyAsync(u => u.Mute = false);
-                }
+        private static string GetSong(KaraokeEntry entry) => $"**【 {entry.Song ?? "Secret"} 】**";
+
+        private async Task ShowNextUserAsync(IUser? user = null)
+        {
+            var token = ResetToken();
+
+            var karaoke = await GetKaraokeAsync(Context.Guild.Id);
+            var last = karaoke.CurrentSinger;
+            var next = karaoke.NextUp.FirstOrDefault();
+            if (last is not null && next is not null)
+            {
+                var lastUser = Context.Guild.GetUser(last.User.Id);
+                var nextUser = Context.Guild.GetUser(next.User.Id);
+
+                await HoistUserAsync(lastUser, false);
+                await HoistUserAsync(nextUser);
+
+                await PauseKaraokeAsync(false);
+                var message = await ReplyAsync(
+                    $"{lastUser} just finished singing {GetSong(last)}! Everyone can now speak for 30 seconds.\n" +
+                    $"The next user to sing is {nextUser}~ {GetSong(next)}");
+                await message.AddReactionAsync(new Emoji("👏"));
+                token = IntermissionTokens[Context.Guild].Token;
+                await Task.Delay(TimeSpan.FromSeconds(30));
+                if (token.IsCancellationRequested)
+                    return;
             }
-            else
+
+            _db.Remove(karaoke.CurrentSinger);
+            await _db.SaveChangesAsync(token);
+
+            karaoke.NextSinger(user);
+            karaoke.VoteSkippedUsers.Clear();
+
+            await StartKaraokeAsync();
+            await UpdateOrSendQueue(last);
+        }
+
+        private static async Task HoistUserAsync(IGuildUser user, bool hoist = true)
+        {
+            if (hoist)
             {
-                _intermission = false;
-                var role = Context.Guild.GetRole(SingingRole);
-                var currentSinger = Queue.CurrentSinger.User;
-
-                if (!currentSinger.HasRole(role)) await currentSinger.AddRoleAsync(role);
-
-                foreach (var user in role.Members
-                    .Where(m => m != currentSinger))
-                {
-                    await user.RemoveRoleAsync(role);
-                }
-
-                foreach (var user in channel.Users
-                    .Where(u => u != currentSinger && !u.IsSelfMuted && !u.IsMuted))
-                {
-                    await user.ModifyAsync(u => u.Mute = true);
-                }
-
-                await channel
-                    .AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
-                        new OverwritePermissions(useVoiceActivation: PermValue.Deny));
+                Nicknames[user] = user.Nickname;
+                await user.ModifyAsync(u => u.Nickname = $"!{user.Nickname ?? user.Username}");
+            }
+            else if (Nicknames.TryGetValue(user, out var nickname))
+            {
+                await user.ModifyAsync(u => u.Nickname = nickname);
             }
         }
 
         private async Task UpdateOrSendQueue(KaraokeEntry? lastSinger = null, bool mention = true)
         {
-            if (_queueMessage != null) _ = _queueMessage.DeleteAsync();
+            var karaoke = await GetKaraokeAsync(Context.Guild.Id);
+            if (await QueueIsEmptyAsync(karaoke)) return;
 
-            if (Queue.CurrentSinger is null)
+            IMessage message;
+            if (karaoke.KaraokeMessage is not null)
             {
-                await ReplyAsync("There is no current singer, add yourself by doing `l!karaoke add [song]`!");
-                return;
+                var channel = Context.Guild.GetTextChannel(karaoke.KaraokeChannel);
+                message = await channel.GetMessageAsync((ulong) karaoke.KaraokeMessage);
+                _ = message.DeleteAsync();
             }
 
             var embed = new EmbedBuilder()
                 .WithTitle("Karaoke Queue")
                 .WithUserAsAuthor(Context.User)
                 .AddField("Currently Singing",
-                    $"{GetSong(Queue.CurrentSinger)} sang by {Queue.CurrentSinger.User}");
+                    $"{GetSong(karaoke.CurrentSinger!)} sang by <@!{karaoke.CurrentSinger!.User.Id}>");
 
-            if (Queue.NextUp.Any())
-                embed.AddField("Next Up",
-                    string.Join(
-                        Environment.NewLine,
-                        Queue.NextUp.Select((u, i) =>
-                            $"{i + 1}. {GetSong(u)} sang by {u.User}")));
+            if (karaoke.NextUp.Any())
+                embed.AddLinesIntoFields("Next Up", karaoke.NextUp,
+                    (u, i) => $"{i + 1}. {GetSong(u)} sang by <@!{u.User.Id}>");
 
-            if (lastSinger != null)
+            if (lastSinger is not null)
                 embed.WithDescription(
                     $"The last song was {GetSong(lastSinger)} by {lastSinger.User}");
 
-            _queueMessage =
-                await ReplyAsync(
-                    $"It is now {(mention ? Queue.CurrentSinger.User.Mention : Queue.CurrentSinger.User.ToString())}'s turn to sing! They're singing {GetSong(Queue.CurrentSinger)}!",
-                    embed: embed.Build());
+            var user = Context.Guild.GetUser(karaoke.CurrentSinger.User.Id);
+            message = await ReplyAsync($"It is now {(mention ? user.Mention : user.ToString())}'s turn to sing! They're singing {GetSong(karaoke.CurrentSinger)}!", embed: embed.Build());
+            karaoke.KaraokeMessage = message.Id;
+        }
+
+        private async Task<bool> QueueIsEmptyAsync(KaraokeSetting karaoke)
+        {
+            if (karaoke.CurrentSinger is not null) return false;
+            await PauseKaraokeAsync(false);
+            await ReplyAsync("Queue is empty! Add yourself by doing `l!k add [song]`");
+            return true;
         }
     }
 }

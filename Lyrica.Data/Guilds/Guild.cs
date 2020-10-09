@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
+using Lyrica.Data.Karaoke;
 
 namespace Lyrica.Data.Guilds
 {
@@ -10,5 +11,7 @@ namespace Lyrica.Data.Guilds
         public ulong Owner { get; set; }
 
         public ulong? LolaBlessGame { get; set; }
+
+        public KaraokeSetting? Karaoke { get; set; }
     }
 }
