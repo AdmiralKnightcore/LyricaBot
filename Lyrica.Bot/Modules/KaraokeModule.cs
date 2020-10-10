@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
 using Lyrica.Data;
 using Lyrica.Data.Karaoke;
 using Lyrica.Services.Core.Messages;
@@ -74,6 +74,7 @@ namespace Lyrica.Bot.Modules
 
             if (notification.New.VoiceChannel?.Id != karaoke.KaraokeVc) return;
 
+            await HoistUserAsync(user, karaoke.CurrentSinger?.User.Id == user.Id);
             if (karaoke.CurrentSinger?.User.Id == user.Id)
             {
                 if (!user.HasRole(karaoke.SingingRole))
@@ -93,8 +94,6 @@ namespace Lyrica.Bot.Modules
                         notification.User);
                     await user.ModifyAsync(u => u.Mute = false);
                 }
-
-                if (!user.Nickname?.StartsWith("!") ?? true) await HoistUserAsync((SocketGuildUser) user);
             }
 
             if (!karaoke.Intermission && notification.User.Id != karaoke.CurrentSinger?.User.Id &&
@@ -256,21 +255,18 @@ namespace Lyrica.Bot.Modules
             var role = Context.Guild.GetRole(karaoke.SingingRole);
 
             var currentSinger = Context.Guild.GetUser(karaoke.CurrentSinger!.User.Id);
+            await currentSinger.AddRoleAsync(role);
 
             foreach (var user in role.Members
                 .Where(m => m != currentSinger))
             {
-                if (user == currentSinger)
-                    await user.AddRoleAsync(role);
-                else
-                    await user.RemoveRoleAsync(role);
+                await user.RemoveRoleAsync(role);
             }
 
-            foreach (var user in channel.Users
-                .Where(u => u != currentSinger)
-                .Where(u => !u.IsSelfMuted && !u.IsMuted))
+            foreach (var user in channel.Users)
             {
                 await user.ModifyAsync(u => u.Mute = user != currentSinger);
+                await HoistUserAsync(user, user == currentSinger);
             }
 
             await channel.ModifyAsync(c => c.Bitrate = 64000);
@@ -392,15 +388,14 @@ namespace Lyrica.Bot.Modules
                 var nextUser = Context.Guild.GetUser(next.User.Id);
 
                 await HoistUserAsync(lastUser, false);
-                await HoistUserAsync(nextUser);
-
                 await PauseKaraokeAsync(false);
+
                 var message = await ReplyAsync(
                     $"{lastUser} just finished singing {GetSong(last)}! Everyone can now speak for 30 seconds.\n" +
                     $"The next user to sing is {nextUser}~ {GetSong(next)}");
                 await message.AddReactionAsync(new Emoji("👏"));
-                token = IntermissionTokens[Context.Guild].Token;
 
+                token = IntermissionTokens[Context.Guild].Token;
                 await Task.Delay(TimeSpan.FromSeconds(30));
             }
 
@@ -421,14 +416,23 @@ namespace Lyrica.Bot.Modules
 
         private static async Task HoistUserAsync(IGuildUser user, bool hoist = true)
         {
+            var name = user.Nickname ?? user.Username;
             if (hoist)
             {
-                Nicknames[user] = user.Nickname;
-                await user.ModifyAsync(u => u.Nickname = $"!{user.Nickname ?? user.Username}");
+                if (name.StartsWith("!"))
+                    return;
+
+                Nicknames[user] = name;
+                await user.ModifyAsync(u => u.Nickname = $"!{name}");
             }
             else if (Nicknames.TryGetValue(user, out var nickname))
             {
                 await user.ModifyAsync(u => u.Nickname = nickname);
+            }
+            else if (hoist == false)
+            {
+                if (name.StartsWith("!"))
+                    await user.ModifyAsync(u => u.Nickname = Regex.Replace(name, @"^!*", string.Empty));
             }
         }
 
