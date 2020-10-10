@@ -21,7 +21,7 @@ namespace Lyrica.Services.Interactive.TypeReaders
                 : TypeReaderResult.FromError(CommandError.ParseFailed, "Invalid input");
     }
 
-    public class EnumTryParseTypeReader<T> : TypeReader
+    public class EnumTryParseTypeReader<T> : TypeReader where T : struct, Enum
     {
         private readonly bool _ignoreCase;
         private readonly EnumTryParseDelegate<T> _tryParse;
@@ -34,7 +34,7 @@ namespace Lyrica.Services.Interactive.TypeReaders
 
         public override async Task<TypeReaderResult> ReadAsync(
             ICommandContext context, string input, IServiceProvider services) =>
-            _tryParse(input, _ignoreCase, out var result)
+            _tryParse(input, _ignoreCase, out var result) && Enum.IsDefined(result)
                 ? TypeReaderResult.FromSuccess(result)
                 : TypeReaderResult.FromError(CommandError.ParseFailed, "Invalid input");
     }

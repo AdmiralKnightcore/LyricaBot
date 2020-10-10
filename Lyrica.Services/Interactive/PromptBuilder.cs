@@ -93,7 +93,7 @@ namespace Lyrica.Services.Interactive
         public PromptCollection<TOptions> ThatHas<T>(TryParseDelegate<T> tryParse) =>
             ThatHas(tryParse.AsTypeReader());
 
-        public PromptCollection<TOptions> ThatHas<T>(EnumTryParseDelegate<T> tryParse, bool ignoreCase = true) =>
+        public PromptCollection<TOptions> ThatHas<T>(EnumTryParseDelegate<T> tryParse, bool ignoreCase = true) where T : struct, Enum =>
             ThatHas(tryParse.AsTypeReader(ignoreCase));
 
         public PromptCollection<TOptions> ThatHas(ICriterion<SocketMessage> criterion)
