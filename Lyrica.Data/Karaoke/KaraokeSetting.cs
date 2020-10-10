@@ -33,9 +33,9 @@ namespace Lyrica.Data.Karaoke
 
         public List<KaraokeEntry> Queue { get; set; } = new List<KaraokeEntry>();
 
-        public IEnumerable<KaraokeEntry> NextUp => Queue.Skip(1).OrderBy(e => e.Date).ToList();
+        public IEnumerable<KaraokeEntry> NextUp => Queue.OrderBy(e => e.Date).Skip(1).ToList();
 
-        public KaraokeEntry? CurrentSinger => Queue.FirstOrDefault();
+        public KaraokeEntry? CurrentSinger => Queue.OrderBy(e => e.Date).FirstOrDefault();
 
         public void NextSinger(IUser? user)
         {
@@ -43,7 +43,9 @@ namespace Lyrica.Data.Karaoke
                 return;
             if (user is not null)
                 Remove(user);
-            else Queue.RemoveAt(0);
+            else if (Queue.Any())
+                Queue.Remove(Queue
+                    .OrderBy(e => e.Date).First());
         }
 
         public void Add(User user, string? song = null)

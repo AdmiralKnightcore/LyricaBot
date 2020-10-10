@@ -97,19 +97,13 @@ namespace Lyrica.Bot.Modules
                 if (!user.Nickname?.StartsWith("!") ?? true) await HoistUserAsync((SocketGuildUser) user);
             }
 
-            if (!notification.New.IsSelfMuted && !notification.New.IsMuted)
+            if (!karaoke.Intermission && notification.User.Id != karaoke.CurrentSinger?.User.Id &&
+                !notification.New.IsSelfMuted && !notification.New.IsMuted)
             {
-                if (!karaoke.Intermission && notification.User.Id != karaoke.CurrentSinger?.User.Id)
-                {
-                    _log.LogDebug("Current singer is {0} so {1} was muted",
-                        karaoke.CurrentSinger?.User,
-                        notification.User);
-                    await user.ModifyAsync(u => u.Mute = true);
-                }
-            }
-            else if (notification.New.IsSelfMuted && notification.New.IsMuted)
-            {
-                await user.ModifyAsync(u => u.Mute = false);
+                _log.LogDebug("Current singer is {0} so {1} was muted",
+                    karaoke.CurrentSinger?.User,
+                    notification.User);
+                await user.ModifyAsync(u => u.Mute = true);
             }
         }
 
@@ -130,8 +124,11 @@ namespace Lyrica.Bot.Modules
         public async Task ResetQueueAsync()
         {
             var karaoke = await GetKaraokeAsync(Context.Guild.Id);
-            karaoke.Queue.Clear();
+
+            _db.RemoveRange(karaoke.Queue);
             await _db.SaveChangesAsync();
+
+            karaoke.Queue.Clear();
 
             await PauseKaraokeAsync();
             await ReplyAsync("Queue has been reset!");
@@ -145,6 +142,7 @@ namespace Lyrica.Bot.Modules
             var karaoke = await GetKaraokeAsync(Context.Guild.Id);
             await ReplyAsync("Refreshing Karaoke permissions");
             await PauseKaraokeAsync();
+            await StartKaraokeAsync();
             _log.LogDebug("Queue {0}", karaoke.Queue);
             _log.LogDebug("Current Singer {0}", karaoke.CurrentSinger?.User);
             await ReplyAsync("Queue and permissions has been reset!");
@@ -248,29 +246,30 @@ namespace Lyrica.Bot.Modules
         {
             var token = ResetToken();
             var karaoke = await GetKaraokeAsync(Context.Guild.Id);
+            if (await QueueIsEmptyAsync(karaoke)) return;
 
             var channel = Context.Guild.GetVoiceChannel(karaoke.KaraokeVc);
             var role = Context.Guild.GetRole(karaoke.SingingRole);
 
             var currentSinger = Context.Guild.GetUser(karaoke.CurrentSinger!.User.Id);
-            if (!currentSinger.HasRole(role)) await currentSinger.AddRoleAsync(role);
 
             foreach (var user in role.Members
                 .Where(m => m != currentSinger))
             {
-                await user.RemoveRoleAsync(role);
+                if (user == currentSinger)
+                    await user.AddRoleAsync(role);
+                else
+                    await user.RemoveRoleAsync(role);
             }
-
-            await channel
-                .AddPermissionOverwriteAsync(Context.Guild.EveryoneRole,
-                    new OverwritePermissions(useVoiceActivation: PermValue.Deny));
-            await channel.ModifyAsync(c => c.Bitrate = 64000);
 
             foreach (var user in channel.Users
-                .Where(u => u != currentSinger && !u.IsSelfMuted && !u.IsMuted))
+                .Where(u => u != currentSinger)
+                .Where(u => !u.IsSelfMuted && !u.IsMuted))
             {
-                await user.ModifyAsync(u => u.Mute = true);
+                await user.ModifyAsync(u => u.Mute = user != currentSinger);
             }
+
+            await channel.ModifyAsync(c => c.Bitrate = 64000);
 
             karaoke.Intermission = false;
             await _db.SaveChangesAsync(token);
@@ -308,7 +307,7 @@ namespace Lyrica.Bot.Modules
             {
                 var token = ResetToken();
                 await ReplyAsync("A new queue has started! Karaoke will begin in 30 seconds!");
-                await Task.Delay(TimeSpan.FromSeconds(30), token);
+                await Task.Delay(TimeSpan.FromSeconds(30));
                 if (token.IsCancellationRequested)
                 {
                     _log.LogInformation("The current singer cancelled their start of the queue.");
@@ -328,6 +327,7 @@ namespace Lyrica.Bot.Modules
             var dbUser = await _db.Users.FindAsync(Context.User.Id);
             var entry = new KaraokeEntry(dbUser, song);
             karaoke.Queue.Insert(position ?? 0, entry);
+            await _db.SaveChangesAsync();
         }
 
         [Priority(10)]
@@ -337,6 +337,7 @@ namespace Lyrica.Bot.Modules
         {
             var karaoke = await GetKaraokeAsync(Context.Guild.Id);
             karaoke.Queue.RemoveAt(position);
+            await _db.SaveChangesAsync();
         }
 
         [Command("remove", true)]
@@ -376,6 +377,8 @@ namespace Lyrica.Bot.Modules
             var token = ResetToken();
 
             var karaoke = await GetKaraokeAsync(Context.Guild.Id);
+            if (await QueueIsEmptyAsync(karaoke)) return;
+
             var last = karaoke.CurrentSinger;
             var next = karaoke.NextUp.FirstOrDefault();
             if (last is not null && next is not null)
@@ -392,19 +395,25 @@ namespace Lyrica.Bot.Modules
                     $"The next user to sing is {nextUser}~ {GetSong(next)}");
                 await message.AddReactionAsync(new Emoji("👏"));
                 token = IntermissionTokens[Context.Guild].Token;
+
+                _db.Remove(karaoke.CurrentSinger);
+                await _db.SaveChangesAsync(token);
+
                 await Task.Delay(TimeSpan.FromSeconds(30));
                 if (token.IsCancellationRequested)
                     return;
             }
-
-            _db.Remove(karaoke.CurrentSinger);
-            await _db.SaveChangesAsync(token);
+            else
+            {
+                _db.Remove(karaoke.CurrentSinger);
+                await _db.SaveChangesAsync(token);
+            }
 
             karaoke.NextSinger(user);
             karaoke.VoteSkippedUsers.Clear();
 
             await StartKaraokeAsync();
-            await UpdateOrSendQueue(last);
+            await UpdateOrSendQueue(last, announce: false);
         }
 
         private static async Task HoistUserAsync(IGuildUser user, bool hoist = true)
@@ -420,17 +429,18 @@ namespace Lyrica.Bot.Modules
             }
         }
 
-        private async Task UpdateOrSendQueue(KaraokeEntry? lastSinger = null, bool mention = true)
+        private async Task UpdateOrSendQueue(KaraokeEntry? lastSinger = null, bool mention = true, bool announce = true)
         {
             var karaoke = await GetKaraokeAsync(Context.Guild.Id);
-            if (await QueueIsEmptyAsync(karaoke)) return;
+            if (await QueueIsEmptyAsync(karaoke, announce)) return;
 
-            IMessage message;
+            IMessage? message;
             if (karaoke.KaraokeMessage is not null)
             {
                 var channel = Context.Guild.GetTextChannel(karaoke.KaraokeChannel);
                 message = await channel.GetMessageAsync((ulong) karaoke.KaraokeMessage);
-                _ = message.DeleteAsync();
+                if (message != null)
+                    _ = message.DeleteAsync();
             }
 
             var embed = new EmbedBuilder()
@@ -450,13 +460,15 @@ namespace Lyrica.Bot.Modules
             var user = Context.Guild.GetUser(karaoke.CurrentSinger.User.Id);
             message = await ReplyAsync($"It is now {(mention ? user.Mention : user.ToString())}'s turn to sing! They're singing {GetSong(karaoke.CurrentSinger)}!", embed: embed.Build());
             karaoke.KaraokeMessage = message.Id;
+            await _db.SaveChangesAsync();
         }
 
-        private async Task<bool> QueueIsEmptyAsync(KaraokeSetting karaoke)
+        private async Task<bool> QueueIsEmptyAsync(KaraokeSetting karaoke, bool announce = true)
         {
             if (karaoke.CurrentSinger is not null) return false;
             await PauseKaraokeAsync(false);
-            await ReplyAsync("Queue is empty! Add yourself by doing `l!k add [song]`");
+            if (announce)
+                await ReplyAsync("Queue is empty! Add yourself by doing `l!k add [song]`");
             return true;
         }
     }

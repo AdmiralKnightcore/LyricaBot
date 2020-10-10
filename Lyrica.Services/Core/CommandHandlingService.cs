@@ -67,8 +67,13 @@ namespace Lyrica.Services.Core
 
             var result = await _commands.ExecuteAsync(context, argPos, _services);
 
-            if (!result.IsSuccess && !(result.Error == CommandError.BadArgCount &&
-                                       result.ErrorReason == "The input text has too few parameters."))
+            if (result is null)
+            {
+                _log.LogWarning("Command with context {0} ran by user {1} is null.", context, message.Author);
+                return;
+            }
+
+            if (!result.IsSuccess)
                 await CommandFailedAsync(context, result).ConfigureAwait(false);
         }
 
