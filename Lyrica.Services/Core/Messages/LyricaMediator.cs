@@ -18,16 +18,21 @@ namespace Lyrica.Services.Core.Messages
             try
             {
                 foreach (var handler in handlers)
-                    try
+                {
+                    _ = Task.Run(async () =>
                     {
-                        await handler(notification, cancellationToken);
-                    }
-                    catch (Exception ex) when (!(ex is OutOfMemoryException || ex is StackOverflowException))
-                    {
-                        Log.Error(ex,
-                            "An unexpected error occurred within a handler for a dispatched message: {notification}",
-                            notification);
-                    }
+                        try
+                        {
+                            await handler(notification, cancellationToken);
+                        }
+                        catch (Exception ex) when (!(ex is OutOfMemoryException || ex is StackOverflowException))
+                        {
+                            Log.Error(ex,
+                                "An unexpected error occurred within a handler for a dispatched message: {notification}",
+                                notification);
+                        }
+                    }, cancellationToken);
+                }
             }
             catch (Exception ex) when (!(ex is OutOfMemoryException || ex is StackOverflowException))
             {
