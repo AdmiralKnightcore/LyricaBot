@@ -14,7 +14,10 @@ namespace Lyrica.Services.Utilities
             var ret = new List<Color>(colorCount);
             var p = 360f / colorCount;
 
-            for (var n = 0; n < colorCount; n++) ret.Add(HsvToRgb(n * p, 1f, 1f));
+            for (var n = 0; n < colorCount; n++)
+            {
+                ret.Add(HsvToRgb(n * p, 1f, 1f));
+            }
 
             return ret;
         }

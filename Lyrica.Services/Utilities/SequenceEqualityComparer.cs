@@ -13,7 +13,10 @@ namespace Lyrica.Services.Utilities
         {
             var hashCode = new HashCode();
 
-            foreach (var item in obj) hashCode.Add(item);
+            foreach (var item in obj)
+            {
+                hashCode.Add(item);
+            }
 
             return hashCode.ToHashCode();
         }

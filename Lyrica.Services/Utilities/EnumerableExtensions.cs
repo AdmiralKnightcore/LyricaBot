@@ -21,11 +21,15 @@ namespace Lyrica.Services.Utilities
             var possibleTail = new Queue<T>();
 
             foreach (var item in source)
+            {
                 if (!predicate(item))
                 {
                     // We found an item that doesn't match the predicate, so
                     // anything we weren't sure about is now safe to return.
-                    while (possibleTail.TryDequeue(out var queuedItem)) yield return queuedItem;
+                    while (possibleTail.TryDequeue(out var queuedItem))
+                    {
+                        yield return queuedItem;
+                    }
 
                     yield return item;
                 }
@@ -33,6 +37,7 @@ namespace Lyrica.Services.Utilities
                 {
                     possibleTail.Enqueue(item);
                 }
+            }
         }
 
         public static IEnumerable<(TFirst First, TSecond Second)> ZipOrDefault<TFirst, TSecond>(

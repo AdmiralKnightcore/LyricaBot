@@ -105,6 +105,10 @@ namespace Lyrica.Bot.Modules
                     notification.User);
                 await user.ModifyAsync(u => u.Mute = true);
             }
+            else if (notification.New.IsSelfMuted && notification.New.IsMuted)
+            {
+                await user.ModifyAsync(u => u.Mute = false);
+            }
         }
 
         [Command(null, true)]
@@ -357,7 +361,8 @@ namespace Lyrica.Bot.Modules
                 return;
             }
 
-            karaoke.Remove(Context.User);
+            if (karaoke.TryRemove(Context.User, out var entry))
+                _db.Remove(entry);
             await _db.SaveChangesAsync();
             await ReplyAsync($"{Context.User.Mention} You were removed from the queue.");
         }
@@ -396,21 +401,19 @@ namespace Lyrica.Bot.Modules
                 await message.AddReactionAsync(new Emoji("👏"));
                 token = IntermissionTokens[Context.Guild].Token;
 
-                _db.Remove(karaoke.CurrentSinger);
-                await _db.SaveChangesAsync(token);
-
                 await Task.Delay(TimeSpan.FromSeconds(30));
-                if (token.IsCancellationRequested)
-                    return;
-            }
-            else
-            {
-                _db.Remove(karaoke.CurrentSinger);
-                await _db.SaveChangesAsync(token);
             }
 
-            karaoke.NextSinger(user);
+            if (karaoke.TryNextSinger(user, out var entry))
+                _db.Remove(entry);
+
+            _db.RemoveRange(karaoke.VoteSkippedUsers);
             karaoke.VoteSkippedUsers.Clear();
+
+            await _db.SaveChangesAsync(token);
+
+            if (token.IsCancellationRequested)
+                return;
 
             await StartKaraokeAsync();
             await UpdateOrSendQueue(last, announce: false);
@@ -455,9 +458,9 @@ namespace Lyrica.Bot.Modules
 
             if (lastSinger is not null)
                 embed.WithDescription(
-                    $"The last song was {GetSong(lastSinger)} by {lastSinger.User}");
+                    $"The last song was {GetSong(lastSinger)} by <@!{lastSinger.User.Id}>");
 
-            var user = Context.Guild.GetUser(karaoke.CurrentSinger.User.Id);
+            var user = Context.Client.GetUser(karaoke.CurrentSinger.User.Id);
             message = await ReplyAsync($"It is now {(mention ? user.Mention : user.ToString())}'s turn to sing! They're singing {GetSong(karaoke.CurrentSinger)}!", embed: embed.Build());
             karaoke.KaraokeMessage = message.Id;
             await _db.SaveChangesAsync();
