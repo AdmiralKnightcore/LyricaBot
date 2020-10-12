@@ -165,7 +165,7 @@ namespace Lyrica.Bot.Modules
             var karaoke = await GetKaraokeAsync(Context.Guild.Id);
 
             if (Context.User.Id == karaoke.CurrentSinger?.User.Id)
-                await ShowNextUserAsync(Context.User);
+                await ShowNextUserAsync();
             else
                 await ReplyAsync("You are not the current singer!");
         }
@@ -265,7 +265,8 @@ namespace Lyrica.Bot.Modules
 
             foreach (var user in channel.Users)
             {
-                await user.ModifyAsync(u => u.Mute = user != currentSinger);
+                await user.ModifyAsync(u => u.Mute =
+                    user != currentSinger && !user.IsSelfMuted);
                 await HoistUserAsync(user, user == currentSinger);
             }
 
@@ -285,10 +286,9 @@ namespace Lyrica.Bot.Modules
             var karaoke = await GetKaraokeAsync(Context.Guild.Id);
             if (Context.User.Id == karaoke.CurrentSinger?.User.Id)
             {
-                if (karaoke.Intermission)
-                    return;
+                if (karaoke.Intermission) return;
 
-                await ShowNextUserAsync(Context.User);
+                await ShowNextUserAsync();
             }
 
             if (karaoke.HasUser(Context.User))
@@ -321,12 +321,12 @@ namespace Lyrica.Bot.Modules
         [Priority(10)]
         [Command("force add")]
         [RequireUserPermission(ChannelPermission.ManageMessages)]
-        public async Task ForceAdd(IGuildUser user, int? position = null, [Remainder] string? song = null)
+        public async Task ForceAdd(IGuildUser user, [Remainder] string? song = null)
         {
             var karaoke = await GetKaraokeAsync(Context.Guild.Id);
             var dbUser = await _db.Users.FindAsync(Context.User.Id);
-            var entry = new KaraokeEntry(dbUser, song);
-            karaoke.Queue.Insert(position ?? 0, entry);
+            karaoke.Queue.Add(new KaraokeEntry(dbUser, song));
+
             await _db.SaveChangesAsync();
         }
 
@@ -357,9 +357,12 @@ namespace Lyrica.Bot.Modules
                 return;
             }
 
-            if (karaoke.TryRemove(Context.User, out var entry))
+            if (karaoke.RemoveSinger(Context.User, out var entry))
+            {
                 _db.Remove(entry);
-            await _db.SaveChangesAsync();
+                await _db.SaveChangesAsync();
+            }
+
             await ReplyAsync($"{Context.User.Mention} You were removed from the queue.");
         }
 
@@ -373,16 +376,16 @@ namespace Lyrica.Bot.Modules
 
         private static string GetSong(KaraokeEntry entry) => $"**【 {entry.Song ?? "Secret"} 】**";
 
-        private async Task ShowNextUserAsync(IUser? user = null)
+        private async Task ShowNextUserAsync()
         {
             var token = ResetToken();
 
             var karaoke = await GetKaraokeAsync(Context.Guild.Id);
             if (await QueueIsEmptyAsync(karaoke)) return;
 
-            var last = karaoke.CurrentSinger;
+            var last = karaoke.CurrentSinger!;
             var next = karaoke.NextUp.FirstOrDefault();
-            if (last is not null && next is not null)
+            if (next is not null)
             {
                 var lastUser = Context.Guild.GetUser(last.User.Id);
                 var nextUser = Context.Guild.GetUser(next.User.Id);
@@ -399,13 +402,12 @@ namespace Lyrica.Bot.Modules
                 await Task.Delay(TimeSpan.FromSeconds(30));
             }
 
-            if (karaoke.TryNextSinger(user, out var entry))
-                _db.Remove(entry);
-
+            _db.Remove(last);
             _db.RemoveRange(karaoke.VoteSkippedUsers);
-            karaoke.VoteSkippedUsers.Clear();
-
             await _db.SaveChangesAsync(token);
+
+            karaoke.RemoveSinger(last);
+            karaoke.VoteSkippedUsers.Clear();
 
             if (token.IsCancellationRequested)
                 return;
@@ -425,14 +427,11 @@ namespace Lyrica.Bot.Modules
                 Nicknames[user] = name;
                 await user.ModifyAsync(u => u.Nickname = $"!{name}");
             }
-            else if (Nicknames.TryGetValue(user, out var nickname))
+            else
             {
-                await user.ModifyAsync(u => u.Nickname = nickname);
-            }
-            else if (hoist == false)
-            {
-                if (name.StartsWith("!"))
-                    await user.ModifyAsync(u => u.Nickname = Regex.Replace(name, @"^!*", string.Empty));
+                if (Nicknames.TryGetValue(user, out var nickname))
+                    await user.ModifyAsync(u => u.Nickname = nickname);
+                else if (name.StartsWith("!")) await user.ModifyAsync(u => u.Nickname = Regex.Replace(name, @"^!*", string.Empty));
             }
         }
 

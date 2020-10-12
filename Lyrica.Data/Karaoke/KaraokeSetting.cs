@@ -37,34 +37,19 @@ namespace Lyrica.Data.Karaoke
 
         public KaraokeEntry? CurrentSinger => Queue.OrderBy(e => e.Date).FirstOrDefault();
 
-        public bool TryNextSinger(IUser? user, out KaraokeEntry? entry)
-        {
-            entry = null!;
-            if (CurrentSinger is null)
-                return false;
-            if (user is not null)
-                return TryRemove(user, out entry);
-            if (Queue.Any())
-                Queue.Remove(Queue
-                    .OrderBy(e => e.Date).First());
+        public bool RemoveSinger(KaraokeEntry? entry) => CurrentSinger is not null && Queue.Remove(entry ?? CurrentSinger);
 
-            return false;
+        public bool RemoveSinger(IUser user, out KaraokeEntry? entry)
+        {
+            entry = Queue.FirstOrDefault(e => e.User.Id == user.Id);
+
+            return RemoveSinger(entry);
         }
 
         public void Add(User user, string? song = null)
         {
             var entry = new KaraokeEntry(user, song);
             Queue.Add(entry);
-        }
-
-        public bool TryRemove(IUser user, out KaraokeEntry? entry)
-        {
-            entry = Queue
-                .FirstOrDefault(e => e.User.Id == user.Id);
-            if (entry is not null)
-                Queue.Remove(entry);
-
-            return entry is not null;
         }
 
         public bool HasUser(IUser user)
