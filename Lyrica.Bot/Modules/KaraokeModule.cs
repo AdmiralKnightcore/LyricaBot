@@ -390,6 +390,13 @@ namespace Lyrica.Bot.Modules
 
             var last = karaoke.CurrentSinger!;
             var next = karaoke.NextUp.FirstOrDefault();
+
+            _db.Remove(last);
+            await _db.SaveChangesAsync(token);
+
+            karaoke.RemoveSinger(last);
+            karaoke.VoteSkippedUsers.Clear();
+
             if (next is not null)
             {
                 var lastUser = Context.Guild.GetUser(last.User.Id);
@@ -406,13 +413,6 @@ namespace Lyrica.Bot.Modules
                 token = IntermissionTokens[Context.Guild].Token;
                 await Task.Delay(TimeSpan.FromSeconds(30));
             }
-
-            _db.Remove(last);
-            _db.RemoveRange(karaoke.VoteSkippedUsers);
-            await _db.SaveChangesAsync(token);
-
-            karaoke.RemoveSinger(last);
-            karaoke.VoteSkippedUsers.Clear();
 
             if (token.IsCancellationRequested)
                 return;
