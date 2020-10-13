@@ -36,6 +36,12 @@ namespace Lyrica.Bot.Behaviors
 
         public async Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
         {
+            var isChannel = notification.Reaction.Channel.Id == RulesChannelId;
+            var isMessage = notification.Message.Id == ReactionRoleMessageId;
+
+            if (!isChannel || !isMessage)
+                return;
+
             if (!(notification.Reaction.User.Value is IGuildUser user))
             {
                 _logger.LogWarning("Received a reaction event {0} but could not cast user {1} to IGuildUser",
@@ -43,11 +49,8 @@ namespace Lyrica.Bot.Behaviors
                 return;
             }
 
-            var isFlower = notification.Reaction.Emote is Emote emote &&
-                           emote.Id == FlowerId;
-            var isChannel = notification.Reaction.Channel.Id == RulesChannelId;
-            var isMessage = (await notification.Message.GetOrDownloadAsync())?.Id == ReactionRoleMessageId;
-            if (isFlower && isChannel && isMessage)
+            if (notification.Reaction.Emote is Emote emote &&
+                emote.Id == FlowerId)
             {
                 if (!(notification.Channel is IGuildChannel guildChannel))
                 {
