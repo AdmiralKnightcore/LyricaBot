@@ -2,6 +2,8 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
+using Lyrica.Data;
+using Lyrica.Data.Users;
 using Lyrica.Services.Core.Messages;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -17,6 +19,8 @@ namespace Lyrica.Bot.Behaviors
         private const ulong ReactionRoleMessageId = 756616075646337165;
         private const long FlowerId = 731456070601408612;
 
+        private readonly LyricaContext _db;
+
         private readonly ulong[] _joinRoles =
         {
             729608027883438091 // Lyrica Stream Pings
@@ -29,9 +33,10 @@ namespace Lyrica.Bot.Behaviors
             728609118486528101 // SiniGang
         };
 
-        public NewUserBehavior(ILogger<NewUserBehavior> logger)
+        public NewUserBehavior(ILogger<NewUserBehavior> logger, LyricaContext db)
         {
             _logger = logger;
+            _db = db;
         }
 
         public async Task Handle(ReactionAddedNotification notification, CancellationToken cancellationToken)
@@ -66,6 +71,13 @@ namespace Lyrica.Bot.Behaviors
 
         public async Task Handle(UserJoinedNotification notification, CancellationToken cancellationToken)
         {
+            var user = await _db.Users.FindAsync(notification.GuildUser.Id);
+            if (user is null)
+            {
+                user = new User(notification.GuildUser);
+                await _db.Users.AddAsync(user, cancellationToken);
+            }
+
             var guild = notification.GuildUser.Guild;
             if (guild.Id != GuildId)
             {

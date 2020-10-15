@@ -22,7 +22,7 @@ namespace Lyrica.Bot.Modules
 
         [Command("timezone")]
         [Summary("Set your timezone when you do announcements")]
-        public async Task SetTimezoneAsync([Summary("Your timezone in +8:00 format")]
+        public async Task SetTimezoneAsync([Remainder] [Summary("Your timezone in +8:00 format")]
             string offset)
         {
             var timezone = _timezoneRegex.Match(offset);

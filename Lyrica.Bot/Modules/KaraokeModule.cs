@@ -312,7 +312,8 @@ namespace Lyrica.Bot.Modules
             {
                 var token = ResetToken();
                 await ReplyAsync("A new queue has started! Karaoke will begin in 30 seconds!");
-                await Task.Delay(TimeSpan.FromSeconds(30));
+                await Task.Delay(TimeSpan.FromSeconds(30), token)
+                    .ContinueWith(t => { });
                 if (token.IsCancellationRequested)
                 {
                     _log.LogInformation("The current singer cancelled their start of the queue.");
@@ -410,8 +411,8 @@ namespace Lyrica.Bot.Modules
                     $"The next user to sing is {nextUser}~ {GetSong(next)}");
                 await message.AddReactionAsync(new Emoji("👏"));
 
-                token = IntermissionTokens[Context.Guild].Token;
-                await Task.Delay(TimeSpan.FromSeconds(30));
+                await Task.Delay(TimeSpan.FromSeconds(30), token)
+                    .ContinueWith(t => { });
             }
 
             if (token.IsCancellationRequested)
