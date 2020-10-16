@@ -38,24 +38,28 @@ namespace Lyrica.Bot.Modules
             [Remainder]
             [Summary("Your birthday with the year optional. " +
                      "The format 'January 1, 1900' will work best. ")]
-            DateTime birthday)
+            DateTime? birthday = null)
         {
-            var hasYear = birthday.Year != DateTime.Now.Year;
-
             var user = await GetUserAsync(Context.User) ?? new User((IGuildUser) Context.User);
 
             if (user.Timezone is null)
                 await ReplyAsync("Your timezone is not set, you can set one by doing `l!timezone +8:00`.");
 
             user.BirthDate = birthday;
-            user.HasYear = hasYear;
-
-            var timezone = user.Timezone ?? TimeSpan.FromHours(8);
-            var offset = new DateTimeOffset(birthday, timezone);
-
-            await ReplyAsync($"Set your birthday to {offset.ToString(hasYear ? "dddd, MMMM d, yyyy K" : "MMMM d K")}.");
-
+            user.HasYear = birthday is not null && birthday?.Year != DateTime.Now.Year;
             await _db.SaveChangesAsync();
+
+            if (birthday is null)
+            {
+                await ReplyAsync("Your birthday was removed");
+            }
+            else
+            {
+                var timezone = user.Timezone ?? TimeSpan.FromHours(8);
+                var offset = new DateTimeOffset((DateTime) birthday!, timezone);
+
+                await ReplyAsync($"Set your birthday to {offset.ToString((bool) user.HasYear ? "dddd, MMMM d, yyyy K" : "MMMM d K")}.");
+            }
         }
 
         private async Task<User?> GetUserAsync(IUser user)
@@ -81,12 +85,13 @@ namespace Lyrica.Bot.Modules
                     .Where(u =>
                     {
                         var tz = u.Timezone ?? TimeSpan.FromHours(8);
-                        var birthday = new DateTimeOffset(u.BirthDate!.Value, tz);
+
+                        var start = new DateTimeOffset(u.BirthDate!.Value, tz);
+                        var end = start.AddDays(1);
 
                         var now = DateTimeOffset.Now.ToOffset(tz);
-                        var end = now.AddDays(1);
 
-                        return birthday > now && birthday < end;
+                        return now > start && now < end;
                     }).ToListAsync(cancellationToken);
 
                 foreach (var member in role.Members
@@ -106,10 +111,12 @@ namespace Lyrica.Bot.Modules
                 }
             };
 
-            var start = DateTime.Now.AddMinutes(1);
-            var startDelay = new DateTime(start.Year, start.Month, start.Day, start.Hour, start.Minute, 0, 0) - DateTime.Now;
+            var startNow = DateTime.Now.AddMinutes(1);
+            var startDelay = new DateTime(startNow.Year, startNow.Month, startNow.Day, startNow.Hour, startNow.Minute, 0, 0) - DateTime.Now;
             await Task.Delay(startDelay, cancellationToken);
             timer.Start();
+
+            await Task.Delay(-1);
         }
     }
 }

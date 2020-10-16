@@ -411,6 +411,7 @@ namespace Lyrica.Bot.Modules
                     $"The next user to sing is {nextUser}~ {GetSong(next)}");
                 await message.AddReactionAsync(new Emoji("👏"));
 
+                token = IntermissionTokens[Context.Guild].Token;
                 await Task.Delay(TimeSpan.FromSeconds(30), token)
                     .ContinueWith(t => { });
             }
