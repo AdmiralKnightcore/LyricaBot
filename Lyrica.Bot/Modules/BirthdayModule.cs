@@ -22,6 +22,7 @@ namespace Lyrica.Bot.Modules
         private readonly LyricaContext _db;
         private readonly DiscordSocketClient _client;
         private readonly ILogger<BirthdayModule> _log;
+        private static bool _isRunning;
 
         public BirthdayModule(LyricaContext db, DiscordSocketClient client, ILogger<BirthdayModule> log)
         {
@@ -70,6 +71,9 @@ namespace Lyrica.Bot.Modules
 
         public async Task Handle(ReadyNotification notification, CancellationToken cancellationToken)
         {
+            if (_isRunning)
+                return;
+
             var guild = _client.GetGuild(728459950468104284);
             var role = guild.GetRole(766125283244769340);
 
@@ -115,6 +119,7 @@ namespace Lyrica.Bot.Modules
             var startDelay = new DateTime(startNow.Year, startNow.Month, startNow.Day, startNow.Hour, startNow.Minute, 0, 0) - DateTime.Now;
             await Task.Delay(startDelay, cancellationToken);
             timer.Start();
+            _isRunning = true;
 
             await Task.Delay(-1);
         }
