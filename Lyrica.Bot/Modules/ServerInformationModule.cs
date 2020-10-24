@@ -256,9 +256,6 @@ namespace Lyrica.Bot.Modules
             [759707412692992080] = string.Empty, // Manage Mod
             [762289957501927457] = string.Empty, // Lyrica Ch.
             [743442874779172937] = string.Empty, // ModMail
-            [737760893235888199] = "The people behind overseeing everything that happens in the server and other platforms. " +
-                                   "They are 2nd in the chain of command, when it comes to important regards, " +
-                                   "feel free to message them if you have something serious to talk to about the server.",
 
             [748848865897349131] = string.Empty, // — Bots —
             [728600674362982451] = string.Empty, // blargbot
@@ -301,8 +298,6 @@ namespace Lyrica.Bot.Modules
             [728462786736422932] = "Automated Role. Tier 1 Subscribers on Twitch " +
                                    "(Similar to Bingo Winners. Your twitch account should be linked to discord " +
                                    "so the bot can give you the role)",
-            [745594372644536480] = "It is a role rewarded to the major builders of " +
-                                   "monumental landmarks in the Minecraft Server",
             [729248749968293920] = "A reward given to those who helped giving out ideas in the server, " +
                                    "contributed emotes, and aided the server generally.",
             [755409349039489033] = "A reward given to the people who helped out Poffi " +
@@ -318,10 +313,7 @@ namespace Lyrica.Bot.Modules
                                    "(Formerly called Resident Drawers, the name Orocan is from a brand of a drawer)",
             [748851133308600333] = "People who are in charge of managing the <#733311526424805467> channel. " +
                                    "They are the chroniclers of the history of the server. ",
-            [740511093968863232] = "Hosts of the Unscuffed Podcast back in July. " +
-                                   "People who recapped on the contents of the <#733311526424805467> channel back in July",
             [728468630387294269] = "Fellow VTubers.  People who use a Virtual character to do YouTube/Twitch",
-            [753414363569717348] = "Spuds.. Nagi-related role. (For context: Nagi is lola’s potato)",
 
             [748849348170874972] = string.Empty, // — Default Roles —
             [728467669409464341] = string.Empty, // Bots
@@ -354,12 +346,6 @@ namespace Lyrica.Bot.Modules
             [755409355968348232] = string.Empty, // VC Gen Access
             [759938688309395497] = string.Empty, // VC Karaoke Access
             [759938896929882113] = string.Empty, // VC Games Access
-            [728659065542148126] = "This is the role that allows you to post media/files/links to chat channels. " +
-                                   "To unlock this role, you need 10K Tatsu points " +
-                                   "to be able to post images and GIFs and links " +
-                                   "by simply chatting/being active on the server.",
-            [761437576283422721] = "Given at 50k tatsu points. " +
-                                   "Allows you to screenshare into the server.",
             [728459950468104284] = "A role that everyone has. Self Explanatory." // @everyone
         };
 
